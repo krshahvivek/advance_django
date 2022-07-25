@@ -1,5 +1,6 @@
 import json
 from django.http import JsonResponse
+from requests import request
 from yaml import serialize
 from products.models import Product
 
@@ -27,6 +28,30 @@ def api_product(request):
         data['content'] = model_data.content
         data['price'] = model_data.price
     # return JsonResponse(data)
+
+#this is with out serializers
+#although i have written function based views in product.views
+@api_view(['GET'])
+def api_get(response):
+    blogs=Product.objects.filter(author__contains='vivek')
+    response=[]
+    for blog in blogs:
+        resp={
+            'title': blog.title,
+            'content':blog.content
+        }
+        response.append(resp)
+    return Response(response)
+
+
+@api_view(['POST'])
+def create_api(request):
+    response=request.data
+    Product.objects.create(
+        product=response['title'],
+        content=response['content']
+    )
+    return Response({'msg':'received'})
 
 from django.forms.models import model_to_dict
 #with serializers
@@ -82,3 +107,4 @@ def api_post_data(request):
         # data = serializer.data
         return Response(serializer.data)
     # return Response({"invalid":"not a good data"}, status=400) this fiel no longer require if we write line 79
+
