@@ -11,10 +11,19 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
+import json
+import os
+import pathlib
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+configDir = os.path.join(pathlib.Path(__file__).parents[1], "config")
+with open(os.path.join(configDir, "config.json")) as configFile:
+    config = json.load(configFile)
+
+with open(os.path.join(configDir, config["secretsJson"])) as secretsJson:
+    config["secrets"] = json.load(secretsJson)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
@@ -70,8 +79,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'GoDigServer.wsgi.application'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_HOST_USER = 'yashvarshneyy@gmail.com'
-EMAIL_HOST_PASSWORD = 'tiwduaydcivlobme'
+EMAIL_HOST_USER = config["EMAIL_HOST_USER"]
+EMAIL_HOST_PASSWORD = config["EMAIL_HOST_PASSWORD"]
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
