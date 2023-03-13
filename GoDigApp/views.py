@@ -10,17 +10,21 @@ import json
 import uuid,re
 import base64
 import smtplib
-from django.core.mail import send_mail
+# from django.core.mail import send_mail
+from django.core import serializers
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Q
 from .src.generate_key import GenerateKey
 import requests
 from .src.data import Data
 import os
 import pathlib
 from GoDigApp.functions import valid_mobile, validate_password
-from .models import AuthUserEmails, User, LoginUuids, GroupAdmins, Groups
+from .models import AuthUserEmails, User, LoginUuids, GroupAdmins, Groups, Productions, Welldescription, Dummytable
+import pandas as pd
+from django.core.validators import RegexValidator
 
 
 @csrf_exempt
@@ -140,7 +144,6 @@ def getPasscode(request):
         except:
             return JsonResponse({'status_code':500,'title': 'Bad Request','message':'Sorry! Error from server end.'})
     return JsonResponse({"message": f"Data sent to you email id - {email}", "status":200})
-
 
 @csrf_exempt
 def getVerifiedAllField(request):
@@ -331,3 +334,78 @@ def login(request):
     else:
         return JsonResponse({"status_code": 500,"title": "Internal server Error","success": False,"message":"sorry you are not authorized to register","error": e},safe=False)
     return JsonResponse({"status_code":200,"title":"OK","success": True,"message":'Login successfully'}, safe=False)
+
+@csrf_exempt
+def CSVIntoProductionTable(request):
+    if request.method != 'POST' and request.FILES['csv_file']:
+        return JsonResponse({"status_code": 405, "title":"Method not allowed", "message": f"{request.method} method not allowed."}, safe=False)
+    wellId = None
+    excel_file = request.FILES['csv_file']
+    df = pd.read_excel(excel_file)
+    if df.items():
+        for index, row in df.iterrows():
+            if Productions.objects.filter(wellid=row[2]).exists():
+                continue
+            if not wellId==row[2]: 
+                wellId=Welldescription.objects.get(wellid=row[2])
+            productions = Productions(productionid=row[0], productiondate=row[1], wellid=wellId,crudeoil=row[6],naturalgas=row[7],condensate=row[9],cbm=row[8])
+            productions.save()
+        return JsonResponse({'status':200,'message':'Successfully data uploaded'}, safe=False)
+    else:
+        return JsonResponse({'status':500,'message':'sorry there was some error'}, safe=False)
+    
+@csrf_exempt
+def getOilProductionData(request):
+    if request.method != 'GET':
+        return JsonResponse({"status_code": 405, "title":"Method not allowed", "message": f"{request.method} method not allowed."}, safe=False)
+    startDate,endDate = (None,)*2
+    startDate = request.GET.get('startDate')
+    endDate = request.GET.get('endDate')
+    start = datetime.datetime.strptime(startDate, '%Y-%m-%d')
+    end = datetime.datetime.strptime(endDate, '%Y-%m-%d')
+    if not (start and end): return JsonResponse({"status_code": 403, "title":"FORBIDDEN", "message": f"{startDate} Formate of date is not allowed."}, safe=False)
+    dataQueryset = Productions.objects.filter(~Q(productiondate__range=[start, end]))
+    serializedData = serializers.serialize('json', dataQueryset,fields=('productionid','productiondate','wellid','crudeoil'))
+    return JsonResponse({"status_code": 200, "title":"OK", "Data": serializedData}, safe=False)
+
+@csrf_exempt
+def getGasProductionData(request):
+    if request.method != 'GET':
+        return JsonResponse({"status_code": 405, "title":"Method not allowed", "message": f"{request.method} method not allowed."}, safe=False)
+    startDate,endDate = (None,)*2
+    startDate = request.GET.get('startDate')
+    endDate = request.GET.get('endDate')
+    start = datetime.datetime.strptime(startDate, '%Y-%m-%d')
+    end = datetime.datetime.strptime(endDate, '%Y-%m-%d')
+    if not (start and end): return JsonResponse({"status_code": 403, "title":"FORBIDDEN", "message": f"{startDate} Formate of date is not allowed."}, safe=False)
+    dataQueryset = Productions.objects.filter(~Q(productiondate__range=[start, end]))
+    serializedData = serializers.serialize('json', dataQueryset,fields=('productionid','productiondate','wellid','naturalgas'))
+    return JsonResponse({"status_code": 200, "title":"OK", "Data": serializedData}, safe=False)
+
+@csrf_exempt
+def getCondensateProductionData(request):
+    if request.method != 'GET':
+        return JsonResponse({"status_code": 405, "title":"Method not allowed", "message": f"{request.method} method not allowed."}, safe=False)
+    startDate,endDate = (None,)*2
+    startDate = request.GET.get('startDate')
+    endDate = request.GET.get('endDate')
+    start = datetime.datetime.strptime(startDate, '%Y-%m-%d')
+    end = datetime.datetime.strptime(endDate, '%Y-%m-%d')
+    if not (start and end): return JsonResponse({"status_code": 403, "title":"FORBIDDEN", "message": f"{startDate} Formate of date is not allowed."}, safe=False)
+    dataQueryset = Productions.objects.filter(~Q(productiondate__range=[start, end]))
+    serializedData = serializers.serialize('json', dataQueryset,fields=('productionid','productiondate','wellid','condensate'))
+    return JsonResponse({"status_code": 200, "title":"OK", "Data": serializedData}, safe=False)
+
+@csrf_exempt
+def getCBMProductionData(request):
+    if request.method != 'GET':
+        return JsonResponse({"status_code": 405, "title":"Method not allowed", "message": f"{request.method} method not allowed."}, safe=False)
+    startDate,endDate = (None,)*2
+    startDate = request.GET.get('startDate')
+    endDate = request.GET.get('endDate')
+    start = datetime.datetime.strptime(startDate, '%Y-%m-%d')
+    end = datetime.datetime.strptime(endDate, '%Y-%m-%d')
+    if not (start and end): return JsonResponse({"status_code": 403, "title":"FORBIDDEN", "message": f"{startDate} Formate of date is not allowed."}, safe=False)
+    dataQueryset = Productions.objects.filter(~Q(productiondate__range=[start, end]))
+    serializedData = serializers.serialize('json', dataQueryset,fields=('productionid','productiondate','wellid','cbm'))
+    return JsonResponse({"status_code": 200, "title":"OK", "Data": serializedData}, safe=False)

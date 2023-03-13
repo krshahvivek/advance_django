@@ -12,5 +12,11 @@ urlpatterns=[
   path('verifyAllFields/',views.getVerifiedAllField,name='getVerifiedAllField'),
   path('verifyPasscode/',views.verifyPasscode,name='verifyPasscode'),
   path('registration/',views.Registration,name='Registration'),
-  path('login/',views.login,name='login')
+  path('login/',views.login,name='login'),
+  path('csvToTable/',views.CSVIntoProductionTable,name='CSVIntoProductionTable'),
+  path('getOilData/',views.getOilProductionData,name='getOilProductionData'),
+  path('getGasData/',views.getOilProductionData,name='getGasProductionData'),
+  path('getCBMData/',views.getOilProductionData,name='getCBMProductionData'),
+  path('getCondensateData/',views.getOilProductionData,name='getCondensateProductionData'),
+  
 ]
