@@ -6,6 +6,11 @@ from . import views
 app_name = "GoDigApp"
 
 urlpatterns=[
-  path('getPasscode',views.getPasscode),
-  path('savePetroliumPrice', views.saveCurrentPetroliumPrices)
+  path('savePetroliumPrice/', views.saveCurrentPetroliumPrices),
+  path('enrollUser/',views.EnrollUser),
+  path('getPasscode/',views.getPasscode),
+  path('verifyAllFields/',views.getVerifiedAllField,name='getVerifiedAllField'),
+  path('verifyPasscode/',views.verifyPasscode,name='verifyPasscode'),
+  path('registration/',views.Registration,name='Registration'),
+  path('login/',views.login,name='login')
 ]
