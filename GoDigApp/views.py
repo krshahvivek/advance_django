@@ -141,31 +141,6 @@ def getPasscode(request):
             return JsonResponse({'status_code':500,'title': 'Bad Request','message':'Sorry! Error from server end.'})
     return JsonResponse({"message": f"Data sent to you email id - {email}", "status":200})
 
-#resend otp
-# @csrf_exempt
-# def resendPasscode(request):
-#     import pdb
-#     pdb.set_trace()
-#     if request.method != 'POST':
-#         return JsonResponse({'message':'Method not allowed'})
-#     data = json.loads(request.body)
-#     email = data["email"]
-#     keygen = GenerateKey()
-#     try:
-#         """Send Email connection"""
-#         key = keygen.send(email, recipients=[email])
-#     except:
-#         return JsonResponse({'status_code':500,'title': 'Internal server Error','message':'Sorry! Code was not shared due to email server side.'})
-#     try:
-#         """DataBase connection in case of storing the uuid with email"""
-#         create_date = datetime.datetime.today()
-#         auth_user = AuthUserEmails.objects.filter(emailid=email)
-#         email_key = auth_user[0].emailkey
-#         login = LoginUuids(uuid='giogfintwiotuynisougbnoisbng',emailkey=email_key,createdon=create_date)
-#         login.save()
-#     except ObjectDoesNotExist:
-#         return JsonResponse({'status_code':500,'title': 'Internal server Error','message':'Sorry! Code was not shared due to server side.'})
-#     return JsonResponse({"message": f"Data sent to you email id - {email}", "status":200})
 
 @csrf_exempt
 def getVerifiedAllField(request):
@@ -356,15 +331,3 @@ def login(request):
     else:
         return JsonResponse({"status_code": 500,"title": "Internal server Error","success": False,"message":"sorry you are not authorized to register","error": e},safe=False)
     return JsonResponse({"status_code":200,"title":"OK","success": True,"message":'Login successfully'}, safe=False)
-
-
-def valid_mobile(mobile):
-    if (not mobile):
-        return 0
-    elif (len(mobile) != 13):
-        return 0
-    elif (not re.search('^\+91', mobile)):
-        return 0
-    else:
-        return 1
-
