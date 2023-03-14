@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'GoDigApp',
 ]
 
 MIDDLEWARE = [
@@ -79,8 +80,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'GoDigServer.wsgi.application'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_HOST_USER = config["EMAIL_HOST_USER"]
-EMAIL_HOST_PASSWORD = config["EMAIL_HOST_PASSWORD"]
+EMAIL_HOST_USER = config["secrets"]["EMAIL_HOST_USER"]
+EMAIL_HOST_PASSWORD = config["secrets"]["EMAIL_HOST_PASSWORD"]
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
@@ -88,14 +89,26 @@ EMAIL_USE_SSL = False
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': config["secrets"]["NAME"],
+        'USER': config["secrets"]["USER"],
+        'PASSWORD': config["secrets"]["PASSWORD"],
+        'HOST': config["secrets"]["HOST"],
+        'PORT': config["secrets"]["PORT"],
+        'OPTIONS': {
+            'charset': 'utf8mb4'  # This is the relevant line
+        }  
     }
 }
-
-
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
 
