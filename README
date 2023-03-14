@@ -1,0 +1,7 @@
+create environment
+pip install -r requrirements.txt
+To Update model:  python manage.py inspectdb <schemaName>.<tableName>
+python manage.py makemigrations
+python manage.py migrate
+python manage.py runserver
+

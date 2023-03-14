@@ -8,53 +8,6 @@
 from django.db import models
 
 
-class AuthGroup(models.Model):
-    name = models.CharField(unique=True, max_length=150)
-
-    class Meta:
-        managed = False
-        db_table = 'auth_group'
-
-
-class AuthGroupPermissions(models.Model):
-    id = models.BigAutoField(primary_key=True)
-    group = models.ForeignKey(AuthGroup, models.DO_NOTHING)
-    permission = models.ForeignKey('AuthPermission', models.DO_NOTHING)
-
-    class Meta:
-        managed = False
-        db_table = 'auth_group_permissions'
-        unique_together = (('group', 'permission'),)
-
-
-class AuthPermission(models.Model):
-    name = models.CharField(max_length=255)
-    content_type = models.ForeignKey('DjangoContentType', models.DO_NOTHING)
-    codename = models.CharField(max_length=100)
-
-    class Meta:
-        managed = False
-        db_table = 'auth_permission'
-        unique_together = (('content_type', 'codename'),)
-
-
-class AuthUser(models.Model):
-    password = models.CharField(max_length=128)
-    last_login = models.DateTimeField(blank=True, null=True)
-    is_superuser = models.IntegerField()
-    username = models.CharField(unique=True, max_length=150)
-    first_name = models.CharField(max_length=150)
-    last_name = models.CharField(max_length=150)
-    email = models.CharField(max_length=254)
-    is_staff = models.IntegerField()
-    is_active = models.IntegerField()
-    date_joined = models.DateTimeField()
-
-    class Meta:
-        managed = False
-        db_table = 'auth_user'
-
-
 class AuthUserEmails(models.Model):
     emailkey = models.AutoField(db_column='EmailKey', primary_key=True)  # Field name made lowercase.
     emailid = models.CharField(db_column='EmailID', max_length=50, blank=True, null=True)  # Field name made lowercase.
@@ -66,28 +19,6 @@ class AuthUserEmails(models.Model):
         db_table = 'auth_user_emails'
 
 
-class AuthUserGroups(models.Model):
-    id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(AuthUser, models.DO_NOTHING)
-    group = models.ForeignKey(AuthGroup, models.DO_NOTHING)
-
-    class Meta:
-        managed = False
-        db_table = 'auth_user_groups'
-        unique_together = (('user', 'group'),)
-
-
-class AuthUserUserPermissions(models.Model):
-    id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(AuthUser, models.DO_NOTHING)
-    permission = models.ForeignKey(AuthPermission, models.DO_NOTHING)
-
-    class Meta:
-        managed = False
-        db_table = 'auth_user_user_permissions'
-        unique_together = (('user', 'permission'),)
-
-
 class Contractors(models.Model):
     contractorid = models.AutoField(db_column='ContractorID', primary_key=True)  # Field name made lowercase.
     contractorname = models.CharField(db_column='ContractorName', max_length=50, db_collation='utf8mb3_general_ci', blank=True, null=True)  # Field name made lowercase.
@@ -97,49 +28,44 @@ class Contractors(models.Model):
         db_table = 'contractors'
 
 
-class DjangoAdminLog(models.Model):
-    action_time = models.DateTimeField()
-    object_id = models.TextField(blank=True, null=True)
-    object_repr = models.CharField(max_length=200)
-    action_flag = models.PositiveSmallIntegerField()
-    change_message = models.TextField()
-    content_type = models.ForeignKey('DjangoContentType', models.DO_NOTHING, blank=True, null=True)
-    user = models.ForeignKey(AuthUser, models.DO_NOTHING)
+class Dummytable(models.Model):
+    wellid = models.AutoField(db_column='WellID', primary_key=True)  # Field name made lowercase.
+    operatorid = models.IntegerField(db_column='OperatorID', blank=True, null=True)  # Field name made lowercase.
+    country = models.CharField(db_column='Country', max_length=50, blank=True, null=True)  # Field name made lowercase.
+    area = models.CharField(db_column='Area', max_length=50, db_collation='utf8mb3_general_ci', blank=True, null=True)  # Field name made lowercase.
+    wellname = models.CharField(db_column='WellName', max_length=50, db_collation='utf8mb3_general_ci', blank=True, null=True)  # Field name made lowercase.
+    field = models.CharField(db_column='Field', max_length=50, db_collation='utf8mb3_general_ci', blank=True, null=True)  # Field name made lowercase.
+    block = models.CharField(db_column='Block', max_length=50, db_collation='utf8mb3_general_ci', blank=True, null=True)  # Field name made lowercase.
+    licenseid = models.IntegerField(db_column='LicenseID', blank=True, null=True)  # Field name made lowercase.
+    state = models.CharField(db_column='State', max_length=50, db_collation='utf8mb3_general_ci', blank=True, null=True)  # Field name made lowercase.
+    latdec = models.FloatField(db_column='LatDec', blank=True, null=True)  # Field name made lowercase.
+    londec = models.FloatField(db_column='LonDec', blank=True, null=True)  # Field name made lowercase.
+    northing = models.FloatField(db_column='Northing', blank=True, null=True)  # Field name made lowercase.
+    easting = models.FloatField(db_column='Easting', blank=True, null=True)  # Field name made lowercase.
+    northingwgs84 = models.FloatField(db_column='NorthingWGS84', blank=True, null=True)  # Field name made lowercase.
+    eastingwgs84 = models.FloatField(db_column='EastingWGS84', blank=True, null=True)  # Field name made lowercase.
+    welltype = models.CharField(db_column='WellType', max_length=50, db_collation='utf8mb3_general_ci', blank=True, null=True)  # Field name made lowercase.
+    location = models.CharField(db_column='Location', max_length=10, db_collation='utf8mb3_general_ci', blank=True, null=True)  # Field name made lowercase.
+    td = models.FloatField(db_column='TD', blank=True, null=True)  # Field name made lowercase.
+    result = models.CharField(db_column='Result', max_length=25, db_collation='utf8mb3_general_ci', blank=True, null=True)  # Field name made lowercase.
+    spuddate = models.DateTimeField(db_column='SpudDate', blank=True, null=True)  # Field name made lowercase.
+    onhiredate = models.DateTimeField(db_column='OnHireDate', blank=True, null=True)  # Field name made lowercase.
+    releasedate = models.DateTimeField(db_column='ReleaseDate', blank=True, null=True)  # Field name made lowercase.
+    totdays = models.FloatField(db_column='TotDays', blank=True, null=True)  # Field name made lowercase.
+    contractorid = models.IntegerField(db_column='ContractorID', blank=True, null=True)  # Field name made lowercase.
+    rigid = models.IntegerField(db_column='RigID', blank=True, null=True)  # Field name made lowercase.
+    elevation = models.FloatField(db_column='Elevation', blank=True, null=True)  # Field name made lowercase.
+    watdepth = models.FloatField(db_column='WatDepth', blank=True, null=True)  # Field name made lowercase.
+    spheroid = models.CharField(db_column='Spheroid', max_length=50, db_collation='utf8mb3_general_ci', blank=True, null=True)  # Field name made lowercase.
+    regionid = models.IntegerField(db_column='RegionID', blank=True, null=True)  # Field name made lowercase.
+    sswhead = models.TextField(db_column='SSWhead', blank=True, null=True)  # Field name made lowercase. This field type is a guess.
+    platform = models.CharField(db_column='Platform', max_length=50, db_collation='utf8mb3_general_ci', blank=True, null=True)  # Field name made lowercase.
+    slot = models.CharField(db_column='Slot', max_length=10, db_collation='utf8mb3_general_ci', blank=True, null=True)  # Field name made lowercase.
+    epsg = models.IntegerField(db_column='EPSG', blank=True, null=True)  # Field name made lowercase.
 
     class Meta:
         managed = False
-        db_table = 'django_admin_log'
-
-
-class DjangoContentType(models.Model):
-    app_label = models.CharField(max_length=100)
-    model = models.CharField(max_length=100)
-
-    class Meta:
-        managed = False
-        db_table = 'django_content_type'
-        unique_together = (('app_label', 'model'),)
-
-
-class DjangoMigrations(models.Model):
-    id = models.BigAutoField(primary_key=True)
-    app = models.CharField(max_length=255)
-    name = models.CharField(max_length=255)
-    applied = models.DateTimeField()
-
-    class Meta:
-        managed = False
-        db_table = 'django_migrations'
-
-
-class DjangoSession(models.Model):
-    session_key = models.CharField(primary_key=True, max_length=40)
-    session_data = models.TextField()
-    expire_date = models.DateTimeField()
-
-    class Meta:
-        managed = False
-        db_table = 'django_session'
+        db_table = 'dummytable'
 
 
 class GroupAdmins(models.Model):
@@ -186,7 +112,7 @@ class Licenses(models.Model):
 class LoginUuids(models.Model):
     id = models.AutoField(db_column='ID', primary_key=True)  # Field name made lowercase.
     uuid = models.CharField(db_column='UUID', max_length=255)  # Field name made lowercase.
-    emailid = models.CharField(db_column='EmailID', max_length=50)  # Field name made lowercase.
+    emailid = models.CharField(db_column='EmailID', max_length=50, blank=True, null=True)  # Field name made lowercase.
     createdon = models.DateTimeField(db_column='CreatedOn')  # Field name made lowercase.
     expireon = models.DateTimeField(db_column='ExpireON')  # Field name made lowercase.
 
@@ -211,7 +137,7 @@ class PetroliumRates(models.Model):
 class Productions(models.Model):
     productionid = models.AutoField(db_column='ProductionID', primary_key=True)  # Field name made lowercase.
     productiondate = models.DateTimeField(db_column='ProductionDate', blank=True, null=True)  # Field name made lowercase.
-    wellid = models.ForeignKey('Welldescription', models.DO_NOTHING, db_column='WellID', blank=True, null=True)  # Field name made lowercase.
+    wellid = models.ForeignKey(Dummytable, models.DO_NOTHING, db_column='WellID', blank=True, null=True)  # Field name made lowercase.
     crudeoil = models.FloatField(db_column='CrudeOil', blank=True, null=True)  # Field name made lowercase.
     naturalgas = models.FloatField(db_column='NaturalGas', blank=True, null=True)  # Field name made lowercase.
     condensate = models.FloatField(db_column='Condensate', blank=True, null=True)  # Field name made lowercase.
@@ -234,11 +160,10 @@ class Regions(models.Model):
         db_table = 'regions'
 
 
-
 class User(models.Model):
     userid = models.AutoField(db_column='UserID', primary_key=True)  # Field name made lowercase.
     password = models.CharField(db_column='Password', max_length=128)  # Field name made lowercase.
-    groupid = models.ForeignKey('Groups', models.DO_NOTHING, db_column='GroupID')  # Field name made lowercase.
+    groupid = models.ForeignKey(Groups, models.DO_NOTHING, db_column='GroupID')  # Field name made lowercase.
     username = models.CharField(db_column='UserName', max_length=50)  # Field name made lowercase.
     isadmin = models.IntegerField(db_column='IsAdmin')  # Field name made lowercase.
     datecreated = models.DateTimeField(db_column='DateCreated')  # Field name made lowercase.
