@@ -4,7 +4,7 @@ import datetime
 from django.http import JsonResponse
 # from rest_framework.views import APIView
 from django.http import Http404
-from .utils import EmailValidate
+from .utils import Validation
 # import pyotp
 import json
 import uuid,re
@@ -22,7 +22,7 @@ from .src.data import Data
 import os
 import pathlib
 from GoDigApp.functions import valid_mobile, validate_password
-from .models import AuthUserEmails, User, LoginUuids, GroupAdmins, Groups, Productions, Welldescription, Dummytable
+from .models import AuthUserEmails, User, LoginUuids, GroupAdmins, Groups, Productions, Welldescription
 import pandas as pd
 from django.core.validators import RegexValidator
 
@@ -42,7 +42,7 @@ def saveCurrentPetroliumPrices(request):
     symbol = ['BRENTOIL','NG']
     petroliumType = ["CrudeRate", "GasRate", "CBMRate", "CondensateRate"]
     endpoint = 'latest'
-    access_key = config["comodityAccessKey"]
+    access_key = config["secrets"]["comodityAccessKey"]
     prices["Date"] = datetime.date.today()
     for idx, sym in enumerate(symbol):
         resp = requests.get(
@@ -61,18 +61,20 @@ def saveCurrentPetroliumPrices(request):
     return JsonResponse({"message": "Petrolium Price uploaded", "status":200})
     
 @csrf_exempt
-def EnrollUser(request):
+def enrollUser(request):
     if request.method != 'POST':
         return JsonResponse({'message':'Method not allowed'})
     email = None
     data = json.loads(request.body)
-    Email = data["Email"]
+    email = data["Email"]
     adminId = data["AdminID"]
     groupId = data["GroupID"]
-    if not (Email and groupId and adminId): return JsonResponse({'message':'Please Enter your Admin Id, Email and group id', 'status_code':406,"title":"NOT ACCEPTABLE"}, safe=False)
-    email = Email.lower()
-    validEmail = EmailValidate(email=email)
+    if not (email and groupId and adminId): return JsonResponse({'message':'Please Enter your Admin Id, Email and group id', 'status_code':406,"title":"NOT ACCEPTABLE"}, safe=False)
+    email = email.lower()
+    validEmail = Validation().emailValidate(email=email)
     if not validEmail: return JsonResponse({'message':'Please Enter Valid Email ID', 'status_code':406,"title":"NOT ACCEPTABLE"}, safe=False)
+    import pdb
+    pdb.set_trace()
     try:
         groupAdmin = GroupAdmins.objects.filter(adminemailid=adminId)
         authUserEmails = AuthUserEmails()
@@ -99,13 +101,13 @@ def getPasscode(request):
     if Email and adminID:
         email = Email.lower()
         adminEmail = adminID.lower()
-        validEmail = EmailValidate(email=email)
-        validAdminEmail = EmailValidate(email=adminEmail)
+        validEmail = Validation().emailValidate(email=email)
+        validAdminEmail = Validation().emailValidate(email=adminEmail)
         if not (validEmail and validAdminEmail): 
             return JsonResponse({'message':'Please Enter Valid Email ID', 'status_code':406,"title":"NOT ACCEPTABLE"}, safe=False)
     else:
         email = Email.lower()
-        validEmail = EmailValidate(email=email)
+        validEmail = Validation().emailValidate(email=email)
         if not validEmail: 
             return JsonResponse({'message':'Please Enter Valid Email ID', 'status_code':406,"title":"NOT ACCEPTABLE"}, safe=False)
     keygen = GenerateKey()
@@ -188,13 +190,13 @@ def verifyPasscode(request):
     if Email and adminID:
         email = Email.lower()
         adminEmail = adminID.lower()
-        validEmail = EmailValidate(email=email)
-        validAdminEmail = EmailValidate(email=adminEmail)
+        validEmail = Validation().emailValidate(email=email)
+        validAdminEmail = Validation().emailValidate(email=adminEmail)
         if not (validEmail and validAdminEmail): 
             return JsonResponse({'message':'Please Enter Both Valid Email IDs', 'status_code':406,"title":"NOT ACCEPTABLE"}, safe=False)
     else:
         email = Email.lower()
-        validEmail = EmailValidate(email=email)
+        validEmail = Validation().emailValidate(email=email)
         if not validEmail: 
             return JsonResponse({'message':'Please Enter Valid Email ID', 'status_code':406,"title":"NOT ACCEPTABLE"}, safe=False)
     if groupID == 4:
@@ -239,13 +241,13 @@ def Registration(request):
     if Email and EnterAdminID:
         email = Email.lower()
         adminEmail = EnterAdminID.lower()
-        validEmail = EmailValidate(email=email)
-        validAdminEmail = EmailValidate(email=adminEmail)
+        validEmail = Validation().emailValidate(email=email)
+        validAdminEmail = Validation().emailValidate(email=adminEmail)
         if not (validEmail and validAdminEmail): 
             return JsonResponse({'message':'Please Enter Valid Email ID', 'status_code':406,"title":"NOT ACCEPTABLE"}, safe=False)
     else:
         email = Email.lower()
-        validEmail = EmailValidate(email=email)
+        validEmail = Validation().emailValidate(email=email)
         if not validEmail: 
             return JsonResponse({'message':'Please Enter Valid Email ID', 'status_code':406,"title":"NOT ACCEPTABLE"}, safe=False)
     if RegisterAs != 4:
@@ -317,7 +319,7 @@ def login(request):
     Password = request_body["Password"]
     if Email:
         email = Email.lower()
-        validEmail = EmailValidate(email=email)
+        validEmail = Validation().emailValidate(email=email)
         if not validEmail: return JsonResponse({'message':'Please Enter Valid Email ID', 'status_code':406,"title":"NOT ACCEPTABLE"}, safe=False)
     try:
         auth_user = AuthUserEmails.objects.filter(emailid=email)
