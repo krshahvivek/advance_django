@@ -73,6 +73,8 @@ class GetFieldVerified(APIView):
         else:
             return Response({'success':False,'message': fields.data['message']}, status=status.HTTP_400_BAD_REQUEST)
     def getPasscodeField(self):
+        import pdb
+        pdb.set_trace()
         Email = self.data["Email"].lower()
         RegisterAs = self.data.get('GroupID') if self.data.get('GroupID') else None
         AdminEmail = self.data.get('AdminEmail').lower() if self.data.get('AdminEmail') else None
@@ -88,8 +90,6 @@ class GetFieldVerified(APIView):
             return Response({'success':False,'message': 'Not Valid Admin Email'}, status=status.HTTP_400_BAD_REQUEST)
         return Response({'success':True, 'message': 'All field verified'},  status=status.HTTP_200_OK)
     def getEnrollFieldVerified(self):
-        # import pdb
-        # pdb.set_trace()
         Email = self.data["EnrollEmail"].lower()
         AdminEmail = self.data.get('AdminEmail').lower() if self.data.get('AdminEmail') else None
         RegisterAs = self.data['GroupID'] if self.data.get('GroupID') else None
@@ -143,6 +143,8 @@ from datetime import timezone
 class GetVerifyPasscode(APIView):
     # http_method_names = ['get']
     def getPasscode(self):
+        import pdb
+        pdb.set_trace()
         existPasscodecheck = None
         email = self.data["PasscodeEmail"]
         keygen = GenerateKey()
@@ -165,6 +167,8 @@ class GetVerifyPasscode(APIView):
             return Response({"message": f"Unable to send the passcode due to {e}", "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response({"message": "Passcode sent", "title": "OK"}, status=status.HTTP_200_OK)
     def verifyPasscode(self):
+        import pdb
+        pdb.set_trace()
         passcode = self.data['Passcode'] if self.data['Passcode'] else None
         email = self.data['PasscodeEmail']
         loginPasscode = None
@@ -215,7 +219,9 @@ class EnrollUser(GetFieldVerified,GetVerifyPasscode, APIView):
                 return Response({"message": "Error from server end", "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             try:
                 if isadmin:
-                    groupAdminObject, groupAdminEmailId =  GroupAdmins.objects.get_or_create(adminemailid=email,adminname=name,groupid=groupId)
+                    groupsTable = Groups.objects.get(groupid=groupId)
+                    if groupsTable:
+                        groupAdminObject, groupAdminEmailId =  GroupAdmins.objects.get_or_create(adminemailid=email,adminname=name,groupid=groupsTable)
                 elif not groupAdminEmailId:
                     return Response({"title": "CONFLICT", "message": f"Email id {email} already been presented"}, status=status.HTTP_409_CONFLICT)
             except:
@@ -278,21 +284,22 @@ class Registration(GetFieldVerified,GetVerifyPasscode, APIView):
     def UserTable(self):
         name = self.name
         password = self.password
-        tableGroups = self.tableGroups
+        # tableGroups = self.tableGroups if self.tableGroups else None
+        tableGroupAdmins = self.tableGroupAdmins if self.tableGroupAdmins else None
         email = self.email
-        # isadmin = 1 if self.groupID == 1 else 0
+        isadmin = 1 if tableGroupAdmins[0] else 0
         DateTime = datetime.datetime.today()
         # number = self.number
-        try:
-            if GroupAdmins.objects.filter(adminemailid=self.email):
-                isadmin = 1
-        except:
-            pass
+        # try:
+        #     if GroupAdmins.objects.filter(adminemailid=self.email):
+        #         isadmin = 1
+        # except:
+        #     pass
         try:
             obj, created = User.objects.get_or_create(
                 username=name,
                 password=password,
-                groupid=tableGroups,
+                groupid=self.groupID,
                 emailid=email,
                 isadmin=isadmin,
                 datecreated=DateTime,
@@ -310,11 +317,11 @@ class Registration(GetFieldVerified,GetVerifyPasscode, APIView):
         fieldVelidation =  self.getPasscodeField()
         groupID = self.getGroupId(self.data)
         adminEmail = self.adminEmailId(self.data)
-        self.email = self.data["PasscodeEmail"].lower()
+        self.email = self.data["Email"].lower()
+        self.data['PasscodeEmail'] = self.email
         if not fieldVelidation.status_code == 200:
             return Response({"message": fieldVelidation.data['message'], "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
         elif groupID == 4:
-            # if self.getPasscode(self):
             if self.getPasscode().status_code==200:
                 return Response({"title": "OK",'success':False,'message': f"Data sent to you email id - {self.email}"}, status=status.HTTP_200_OK)
             else:
@@ -340,18 +347,26 @@ class Registration(GetFieldVerified,GetVerifyPasscode, APIView):
             except Exception as e:
                 return Response({"title": "Internal Server Error",'success':False,'message': f'Sorry! Error from server end. {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     def post(self, request):
+        import pdb
+        pdb.set_trace()
         auth_user, adminEmail, matchedPasscode = (None,)*3
         self.data = json.loads(request.body)
         self.EnterPassCode = self.data["Passcode"]
-        fieldVelidation =  self.getFieldVerified()
+        self.name = self.data["Name"]
+        self.email = self.data["Email"].lower()
+        self.data["PasscodeEmail"] = self.email
+        self.password = self.data["Password"]
+        # self.number = self.data["Number"]
+        fieldVelidation =  self.getPasscodeField()
+        # fieldVelidation =  self.getFieldVerified()
         self.groupID = self.getGroupId(self.data)
         adminEmail = self.adminEmailId(self.data)
         if not fieldVelidation.status_code == 200:
             return Response({"message": fieldVelidation.data['message'], "title": "NOT ACCEPTABLE"}, status=status.HTTP_406_NOT_ACCEPTABLE)
-        else:
-            self.name = self.data["Name"]
-            self.email = self.data["Email"].lower()
-            self.password = self.data["Password"]
+        # else:
+        #     self.name = self.data["Name"]
+        #     self.email = self.data["Email"].lower()
+        #     self.password = self.data["Password"]
             # self.number = self.data["Number"]
         if self.groupID == 4:
             matchedPasscode = self.verifyPasscode()
@@ -385,6 +400,9 @@ class Registration(GetFieldVerified,GetVerifyPasscode, APIView):
                 return JsonResponse({"status": 200, "title": "OK", "message": "Registered Successfully."}, safe=False) 
         else:
             """If User will not register as a User """
+            self.tableGroupAdmins = GroupAdmins.objects.filter(adminemailid=self.email)
+            # if self.tableGroupAdmins:
+            #     self.isAdmin = self.tableGroupAdmins[0].adminemailid
             userTable = self.UserTable(self)
             if userTable==False:
                 return JsonResponse({"status": 500, "title": "Internal server Error", "success": False, "message": "Something happened to the server side", "error": e}, safe=False)
