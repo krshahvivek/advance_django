@@ -75,7 +75,7 @@ class GetFieldVerified(APIView):
     def getPasscodeField(self):
         Email = self.data["Email"].lower()
         RegisterAs = self.data.get('GroupID') if self.data.get('GroupID') else None
-        AdminEmail = self.data.get('AdminID').lower() if self.data.get('AdminID') else None
+        AdminEmail = self.data.get('AdminEmail').lower() if self.data.get('AdminEmail') else None
         if not RegisterAs:
             return Response({'success':False,'message': 'Group ID is required'}, status=status.HTTP_400_BAD_REQUEST)
         elif not Email:
@@ -87,9 +87,11 @@ class GetFieldVerified(APIView):
         elif not Validation().emailValidate(email=AdminEmail):
             return Response({'success':False,'message': 'Not Valid Admin Email'}, status=status.HTTP_400_BAD_REQUEST)
         return Response({'success':True, 'message': 'All field verified'},  status=status.HTTP_200_OK)
-    def enrollField(self):
-        Email = self.data["Email"].lower()
-        AdminEmail = self.data.get('AdminID').lower() if self.data.get('AdminID') else None
+    def getEnrollFieldVerified(self):
+        # import pdb
+        # pdb.set_trace()
+        Email = self.data["EnrollEmail"].lower()
+        AdminEmail = self.data.get('AdminEmail').lower() if self.data.get('AdminEmail') else None
         RegisterAs = self.data['GroupID'] if self.data.get('GroupID') else None
         if not RegisterAs:
             return Response({'success':False,'message': 'Group ID is required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -109,7 +111,7 @@ class GetFieldVerified(APIView):
         Password = self.data["Password"] if self.data.get("Password") else None
         ConfirmPassword = self.data["ConfirmPassword"] if self.data.get("ConfirmPassword") else None
         RegisterAs = self.data.get('GroupID') if self.data.get('GroupID') else None
-        AdminEmail = self.data.get('AdminID').lower() if self.data.get('AdminID') else None
+        # AdminEmail = self.data.get('AdminEmail').lower() if self.data.get('AdminEmail') else None
         if not Name:
             return Response({'success':False,'message': 'Name is required'}, status=status.HTTP_400_BAD_REQUEST)
         if not RegisterAs:
@@ -118,10 +120,10 @@ class GetFieldVerified(APIView):
             return Response({'success':False,'message': 'Email ID is required'}, status=status.HTTP_400_BAD_REQUEST)
         elif not Validation().emailValidate(email=Email):
             return Response({'success':False,'message': 'Not Valid Email'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not AdminEmail:
-            return Response({'success':False,'message': 'Admin ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not Validation().emailValidate(email=AdminEmail):
-            return Response({'success':False,'message': 'Not Valid AdminID'}, status=status.HTTP_400_BAD_REQUEST)
+        # elif not AdminEmail:
+        #     return Response({'success':False,'message': 'Admin ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        # elif not Validation().emailValidate(email=AdminEmail):
+        #     return Response({'success':False,'message': 'Not Valid AdminEmail'}, status=status.HTTP_400_BAD_REQUEST)
         elif not Number:
             return Response({'success':False,'message': 'Number is required'}, status=status.HTTP_400_BAD_REQUEST)
         elif not valid_mobile(Number):
@@ -130,31 +132,95 @@ class GetFieldVerified(APIView):
             return Response({'success':False,'message': 'Not Valid Password'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             obj= PasswordValidator(Password)
-            objFuction = obj.validate()
-            if not objFuction == True:
-                return Response({'success':False,'message': objFuction}, status=status.HTTP_400_BAD_REQUEST)
-            if not Password == ConfirmPassword:
+            getPasswordValidation = obj.validate()
+            if getPasswordValidation:
+                return Response({'success':False,'message': getPasswordValidation}, status=status.HTTP_400_BAD_REQUEST)
+            elif not Password == ConfirmPassword:
                 return Response({'success':False,'message': 'Not Matched Password'}, status=status.HTTP_400_BAD_REQUEST)
         return Response({'success':True, 'message': 'All field verified'},  status=status.HTTP_200_OK)
-verifyAllFields = GetFieldVerified.as_view()    
-class EnrollUser(GetFieldVerified, APIView):
-    http_method_names = ['post']
-    def post(self, request):
-        print('class driving')
-        isValid, obj = (None,)*2
+verifyAllFields = GetFieldVerified.as_view()
+from datetime import timezone
+class GetVerifyPasscode(APIView):
+    # http_method_names = ['get']
+    def getPasscode(self):
+        existPasscodecheck = None
+        email = self.data["PasscodeEmail"]
+        keygen = GenerateKey()
+        create_date = datetime.datetime.today()
+        try:
+            existPasscodecheck = LoginUuids.objects.filter(emailid=email)
+            if existPasscodecheck:
+                if existPasscodecheck[0].expireon.astimezone(timezone.utc).replace(tzinfo=None) >= create_date:
+                    key = keygen.send(email,recipients=[email],key=existPasscodecheck[0].uuid)
+                else:
+                    existPasscodecheck[0].delete()
+                    key = keygen.send(email,recipients=[email],key=existPasscodecheck[0])
+                    login = LoginUuids(uuid=key, emailid=email, createdon=create_date)
+                    login.save()
+            else:
+                key = keygen.send(email,recipients=[email],key=None)
+                login = LoginUuids(uuid=key, emailid=email, createdon=create_date)
+                login.save()
+        except Exception as e:
+            return Response({"message": f"Unable to send the passcode due to {e}", "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"message": "Passcode sent", "title": "OK"}, status=status.HTTP_200_OK)
+    def verifyPasscode(self):
+        passcode = self.data['Passcode'] if self.data['Passcode'] else None
+        email = self.data['PasscodeEmail']
+        loginPasscode = None
+        loginID = LoginUuids.objects.filter(emailid=email).order_by('-id')
+        if not loginID:
+            return Response({"message": "Your passcode not matched", "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
+        loginPasscode = loginID[0].uuid
+        if passcode != loginPasscode:
+            return Response({"message": "Your passcode not matched", "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "Your passcode matched", "title": "OK"}, status=status.HTTP_200_OK)
+# verify_passcode = VerifyPasscode.as_view(get='verifyPasscode')
+
+class EnrollUser(GetFieldVerified,GetVerifyPasscode, APIView):
+    http_method_names = ['get','post']
+    def get(self,request):
         self.data = json.loads(request.body)
-        fieldVelidation = self.enrollField()
+        fieldVelidation = self.getEnrollFieldVerified()
         if fieldVelidation.status_code == 200 :
-            # if not (email and groupId and adminId):
-            #     return JsonResponse({"message": "Please Enter your Admin Id, Email and group id", "status": 406, "title": "NOT ACCEPTABLE"}, safe=False)
-            # isValid = Validation().emailValidate(email=email)
-            # if not isValid:
-            #     return JsonResponse({"message": "Please Enter Valid Email ID", "status": 406, "title": "NOT ACCEPTABLE"}, safe=False)
-            email = self.data["Email"].lower()
-            adminId = self.data["AdminID"]
+            if not self.getPasscode().status_code == 200:
+                return Response({"message": self.getPasscode().data['message'], "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            return Response({"message": fieldVelidation.data['message'], "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "Passcode sent", "title": "OK"}, status=status.HTTP_200_OK)
+    def post(self, request):
+        import pdb
+        pdb.set_trace()
+        isValid, groupAdmin, groupAdminEmailId,matchedPasscode = (None,)*4
+        self.data = json.loads(request.body)
+        enroll_user = EnrollUser()
+        response = enroll_user.get(request)
+        if response.status_code == 200 :
+            """
+                Here we taking input PasscodeEmail and Passcode as well to send the passcode and match it
+            """
+            isadmin = self.data["isAdmin"]
+            name = self.data['EnrollName']
+            email = self.data["EnrollEmail"].lower()
+            adminId = self.data["AdminEmail"]
             groupId = self.data["GroupID"]
+            matchedPasscode = self.verifyPasscode()
+            if not matchedPasscode:
+                return Response({"message": matchedPasscode.data['message'], "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
             try:
                 groupAdmin = GroupAdmins.objects.filter(adminemailid=adminId)
+                if not groupAdmin:
+                    return Response({"message": "You are not allowed to register", "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
+            except:
+                return Response({"message": "Error from server end", "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            try:
+                if isadmin:
+                    groupAdminObject, groupAdminEmailId =  GroupAdmins.objects.get_or_create(adminemailid=email,adminname=name,groupid=groupId)
+                elif not groupAdminEmailId:
+                    return Response({"title": "CONFLICT", "message": f"Email id {email} already been presented"}, status=status.HTTP_409_CONFLICT)
+            except:
+                return Response({"message": "Error from server end", "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            try:
                 obj, isValid = AuthUserEmails.objects.get_or_create(
                     emailid=email, permitas=groupId, adminid=groupAdmin[0])
             except AuthUserEmails.MultipleObjectsReturned:
@@ -165,26 +231,10 @@ class EnrollUser(GetFieldVerified, APIView):
             else:
                 return Response({"title": "CONFLICT", "message": f"Email id {email} already been presented"}, status=status.HTTP_409_CONFLICT)
         else:
-            return JsonResponse({"message": "Please Enter your Admin Id, Email and group id", "title": "NOT ACCEPTABLE"}, status=status.HTTP_406_NOT_ACCEPTABLE)
+            return Response({"message": response.data['message'], "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
 enrollUser = EnrollUser.as_view()
+class Registration(GetFieldVerified,GetVerifyPasscode, APIView):
 
-
-class VerifyPasscode(APIView):
-    # http_method_names = ['get']
-    def verifyPasscode(self):
-        passcode = self.data['Passcode'] if self.data['Passcode'] else None
-        email = self.data['Email']
-        loginPasscode = None
-        loginID = LoginUuids.objects.filter(emailid=email).order_by('-id')
-        loginPasscode = loginID[0].uuid
-        if passcode == loginPasscode:
-            return Response({"message": "Your passcode matched", "title": "OK"}, status=status.HTTP_200_OK)
-        else:
-            return Response({"message": "Your passcode not matched", "title": "ACCEPTABLE"}, status=status.HTTP_202_ACCEPTED)
-# verify_passcode = VerifyPasscode.as_view(get='verifyPasscode')
-
-class Registration(GetFieldVerified,VerifyPasscode, APIView):
-    
     http_method_names = ['get','post']
     
     @staticmethod
@@ -201,7 +251,7 @@ class Registration(GetFieldVerified,VerifyPasscode, APIView):
    
     @staticmethod
     def adminEmailId(self):
-        EnterAdminEmail = self["AdminID"].lower() if self["AdminID"] else None
+        EnterAdminEmail = self["AdminEmail"].lower() if self["AdminEmail"] else None
         if not EnterAdminEmail:
             return 0
         elif Validation().emailValidate(email=EnterAdminEmail):
@@ -209,8 +259,8 @@ class Registration(GetFieldVerified,VerifyPasscode, APIView):
         else:
             return 0
     
-    @staticmethod
-    def getPasscode(self):
+    # @staticmethod
+    # def getPasscode(self):
         import pdb
         pdb.set_trace()
         email = self.data["Email"]
@@ -230,9 +280,14 @@ class Registration(GetFieldVerified,VerifyPasscode, APIView):
         password = self.password
         tableGroups = self.tableGroups
         email = self.email
-        isadmin = 1 if self.groupID == 1 else 0
+        # isadmin = 1 if self.groupID == 1 else 0
         DateTime = datetime.datetime.today()
         # number = self.number
+        try:
+            if GroupAdmins.objects.filter(adminemailid=self.email):
+                isadmin = 1
+        except:
+            pass
         try:
             obj, created = User.objects.get_or_create(
                 username=name,
@@ -255,14 +310,15 @@ class Registration(GetFieldVerified,VerifyPasscode, APIView):
         fieldVelidation =  self.getPasscodeField()
         groupID = self.getGroupId(self.data)
         adminEmail = self.adminEmailId(self.data)
-        self.email = self.data["Email"].lower()
+        self.email = self.data["PasscodeEmail"].lower()
         if not fieldVelidation.status_code == 200:
             return Response({"message": fieldVelidation.data['message'], "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
         elif groupID == 4:
-            if self.getPasscode(self):
+            # if self.getPasscode(self):
+            if self.getPasscode().status_code==200:
                 return Response({"title": "OK",'success':False,'message': f"Data sent to you email id - {self.email}"}, status=status.HTTP_200_OK)
             else:
-                return Response({"title": "Internal Server Error",'success':False,'message': 'Sorry! Error from server end.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({"message": self.getPasscode().data['message'], "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             try:
                 auth_user = AuthUserEmails.objects.filter(emailid=self.email)
@@ -276,7 +332,8 @@ class Registration(GetFieldVerified,VerifyPasscode, APIView):
                 elif not (tablePermitAs == groupID):
                     return Response({'success':False,'message': 'Sorry! You are not authorized to  Register as you want.'}, status=status.HTTP_400_BAD_REQUEST)
                 elif emailid == self.email:
-                    if self.getPasscode(self):
+                    if self.getPasscode():
+                    # if self.getPasscode(self):
                         return Response({"title": "OK",'success':False,'message': f"Data sent to you email id - {self.email}"}, status=status.HTTP_200_OK)
                     else:
                         return Response({"title": "Internal Server Error",'success':False,'message': 'Sorry! Error from server end.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -341,7 +398,7 @@ class Login(APIView):
     def post(request):
         email, getPassword,userEmail = (None,)*3
         request_body = json.loads(request.body)
-        Email = request_body["Email"] if request_body["Email"] else None
+        Email = request_body["LoginEmail"] if request_body["LoginEmail"] else None
         Password = request_body["Password"]  if request_body["Password"] else None
         if not Email:
             return Response({'success':False,'message': 'Pleas provide email'}, status=status.HTTP_400_BAD_REQUEST)
