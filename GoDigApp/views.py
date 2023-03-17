@@ -157,8 +157,6 @@ class VerifyPascode(APIView):
             return Response({"message": "Your passcode did not match", "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"message": "Your passcode has matched", "title": "OK"}, status=status.HTTP_200_OK)
     def get(self, request):
-        import pdb
-        pdb.set_trace()
         self.data = json.loads(request.body)
         self.isVerifiedPasscode = self.verifyPasscode(self)
         if self.isVerifiedPasscode:
