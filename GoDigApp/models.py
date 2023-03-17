@@ -168,6 +168,7 @@ class User(models.Model):
     isadmin = models.IntegerField(db_column='IsAdmin')  # Field name made lowercase.
     datecreated = models.DateTimeField(db_column='DateCreated')  # Field name made lowercase.
     emailid = models.CharField(db_column='EmailID', max_length=50, blank=True, null=True)  # Field name made lowercase.
+    contactno = models.CharField(db_column='ContactNo', max_length=50,blank=True,null=True)
 
     class Meta:
         managed = False
