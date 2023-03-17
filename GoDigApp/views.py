@@ -186,7 +186,7 @@ class EnrollUser(APIView):
         if not self.groupAdmin:
             return Response({"message":"you are not alowed to enroll the user"},status=status.HTTP_400_BAD_REQUEST)
         if len(self.ObjectAuthUserTable) > 0:
-            return Response({"message": "Already Enrolled", "title": "Bad Request"},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "Already Enrolled", "title": "Bad Request"},status=status.HTTP_409_CONFLICT)
         if len(self.ObjectUserTable) > 0:
             if len(self.groupAdmin) == 0:
                 return Response({"message": "You are not allowed to register", "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
