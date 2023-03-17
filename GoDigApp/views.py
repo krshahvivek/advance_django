@@ -137,6 +137,7 @@ class SendPasscode(APIView):
             if len(ObjectAuthUserEmail) == 0: return Response({"message":"You are not authorized to register as you want, Please try to register as User"},status=status.HTTP_400_BAD_REQUEST)
             self.groupIdSendPasscode = self.sendPasscode(self)
         return Response(status=status.HTTP_200_OK)
+
 sendPasscode = SendPasscode.as_view()
 class VerifyPascode(APIView):
     http_method_names = ['get']
@@ -162,6 +163,7 @@ class VerifyPascode(APIView):
         if self.isVerifiedPasscode:
             return Response({"message": self.isVerifiedPasscode.data["message"]}, status=status.HTTP_200_OK)
         return Response({"message": self.isVerifiedPasscode.data["message"]}, status=status.HTTP_400_BAD_REQUEST)
+
 verifyPasscode = VerifyPascode.as_view()   
 class EnrollUser(APIView):
     http_method_names = ['post']
@@ -171,7 +173,7 @@ class EnrollUser(APIView):
         self.isadmin = self.data["IsEnroll"]
         self.groupId = self.data["GroupID"]
         self.adminEmail = self.data["AdminEmail"]
-        self.name = self.data["UserName"]
+        self.name = self.data["EnrollName"]
         try:
             self.ObjectAuthUserTable = AuthUserEmails.objects.filter(emailid=self.email)
             self.ObjectUserTable = User.objects.filter(emailid=self.email)
@@ -220,7 +222,8 @@ class EnrollUser(APIView):
             except:
                 return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(status=status.HTTP_200_OK)
-enrolluser = EnrollUser.as_view()
+
+enrollUser = EnrollUser.as_view()
 class IsEmailRegistered(APIView):
     def get(self, request):
         self.data = json.loads(request.body)
@@ -229,6 +232,7 @@ class IsEmailRegistered(APIView):
         if len(self.ObjectUserTable) > 0:
             return Response(status=status.HTTP_409_CONFLICT)
         return Response(status=status.HTTP_200_OK)
+
 isEmailRegistered = IsEmailRegistered.as_view()
 class RegisterUser(APIView):
     def post(self,request):
@@ -267,4 +271,30 @@ class RegisterUser(APIView):
             except:
                 return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response({"message": "Passcode sent", "title": "OK"}, status=status.HTTP_200_OK)
-registeruser = RegisterUser.as_view()
+
+registerUser = RegisterUser.as_view()
+
+class Login(APIView):
+    def get(self, request):
+        userEmail = None
+        request_body = json.loads(request.body)
+        email = request_body["LoginEmail"].lower()
+        Password = request_body["Password"]
+        try:
+            auth_user = AuthUserEmails.objects.filter(emailid=email)
+            if auth_user:
+                tableEmailId = auth_user[0].emailid
+                userEmail = User.objects.filter(emailid=tableEmailId)
+            else:
+                return JsonResponse({"message": "Please Enter Correct Email ID", "status": 406, "title": "NOT ACCEPTABLE"}, safe=False)
+        except Exception as e:
+            return JsonResponse({"status": 500, "title": "Internal server Error", "success": False, "message": "sorry you are not authorized to register", "error": e}, safe=False)
+        if userEmail:
+            getPassword = userEmail[0].password
+            if Password != getPassword:
+                return JsonResponse({"message": "Entered Password is wrong", "status": 406, "title": "NOT ACCEPTABLE"}, safe=False)
+        else:
+            return JsonResponse({"status": 500, "title": "Internal server Error", "success": False, "message": "sorry you are not authorized to register", "error": e}, safe=False)
+        return JsonResponse({"status": 200, "title": "OK", "success": True, "message": "Login successfully"}, safe=False)
+
+login = Login.as_view()
