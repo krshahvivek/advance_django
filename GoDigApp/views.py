@@ -90,7 +90,8 @@ class SendPasscode(APIView):
             return Response({"message": f"Unable to send the passcode due to {e}", "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response({"message": "Passcode sent", "title": "OK"}, status=status.HTTP_200_OK)
     def get(self,request):
-        self.data = json.loads(request.body)
+        # self.data = json.loads(request.body)
+        self.data = request.GET
         self.isEnroll = self.data["IsEnroll"]
         self.groupID = self.data["GroupID"]
         self.adminEmail = self.data["AdminEmail"]
@@ -141,28 +142,26 @@ class SendPasscode(APIView):
 sendPasscode = SendPasscode.as_view()
 class VerifyPascode(APIView):
     http_method_names = ['get']
-    @staticmethod
-    def verifyPasscode(self):
-        passcode = self.data['Passcode']
-        email = self.data['PasscodeEmail']
-        create_date = datetime.datetime.today()
+    def get(self, request):
+        # self.data = json.loads(request.body)
+        self.data = request.GET
         loginPasscode = None
-        loginID = LoginUuids.objects.filter(emailid=email)
-        if loginID:
-            if not loginID[0].expireon.astimezone(timezone.utc).replace(tzinfo=None) >= create_date:
-                return Response({"message": "Your passcode is expired, Please do send the passcode again", "title": "NOT ACCEPTABLE"}, status=status.HTTP_406_NOT_ACCEPTABLE)
-        elif not loginID:
+        passcode = self.data['Passcode']
+        create_date = datetime.datetime.today()
+        email = self.data['PasscodeEmail']
+        try:
+            self.isVerifiedPasscode = LoginUuids.objects.filter(emailid=email)
+        except:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        if len(self.isVerifiedPasscode) > 0:
+            if not self.isVerifiedPasscode[0].expireon.astimezone(timezone.utc).replace(tzinfo=None) >= create_date:
+                return Response({"message": "Your passcode is expired, Please do send the passcode again", "title": "UNAUTHORIZED"}, status=status.HTTP_401_UNAUTHORIZED)
+        elif not len(self.isVerifiedPasscode) > 0:
             return Response({"message": "Opps! there is not passcode to verify. Please do send the passcode again and then try to verify", "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
-        loginPasscode = loginID[0].uuid
+        loginPasscode = self.isVerifiedPasscode[0].uuid
         if passcode != loginPasscode:
             return Response({"message": "Your passcode did not match", "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"message": "Your passcode has matched", "title": "OK"}, status=status.HTTP_200_OK)
-    def get(self, request):
-        self.data = json.loads(request.body)
-        self.isVerifiedPasscode = self.verifyPasscode(self)
-        if self.isVerifiedPasscode:
-            return Response({"message": self.isVerifiedPasscode.data["message"]}, status=status.HTTP_200_OK)
-        return Response({"message": self.isVerifiedPasscode.data["message"]}, status=status.HTTP_400_BAD_REQUEST)
 
 verifyPasscode = VerifyPascode.as_view()   
 class EnrollUser(APIView):
@@ -226,12 +225,16 @@ class EnrollUser(APIView):
 enrollUser = EnrollUser.as_view()
 class IsEmailRegistered(APIView):
     def get(self, request):
-        self.data = json.loads(request.body)
-        self.userEmail=self.data["UserEmail"]
+        self.data = request.GET
+        import pdb
+        pdb.set_trace()
+        # self.data = json.loads(request.body)
+        # self.userEmail=self.data["UserEmail"]
+        self.userEmail = self.data['UserEmail']
         self.ObjectUserTable = User.objects.filter(emailid=self.userEmail)
         if len(self.ObjectUserTable) > 0:
             return Response(status=status.HTTP_409_CONFLICT)
-        return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
 isEmailRegistered = IsEmailRegistered.as_view()
 class RegisterUser(APIView):
@@ -277,12 +280,14 @@ registerUser = RegisterUser.as_view()
 class Login(APIView):
     def get(self, request):
         userEmail = None
-        request_body = json.loads(request.body)
-        email = request_body["LoginEmail"].lower()
-        Password = request_body["Password"]
+        # request_body = json.loads(request.body)
+        # email = request_body["LoginEmail"].lower()
+        # Password = request_body["Password"]
+        email = self.data("LoginEmail").lower()
+        Password = self.data("Password")
         try:
             auth_user = AuthUserEmails.objects.filter(emailid=email)
-            if auth_user:
+            if len(auth_user) > 0:
                 tableEmailId = auth_user[0].emailid
                 userEmail = User.objects.filter(emailid=tableEmailId)
             else:
@@ -298,3 +303,5 @@ class Login(APIView):
         return JsonResponse({"status": 200, "title": "OK", "success": True, "message": "Login successfully"}, safe=False)
 
 login = Login.as_view()
+
+
