@@ -277,7 +277,7 @@ class RegisterUser(APIView):
 
 registerUser = RegisterUser.as_view()
 
-class Login(APIView):
+class CheckLoginCredential(APIView):
     def get(self, request):
         userEmail = None
         # request_body = json.loads(request.body)
@@ -303,6 +303,6 @@ class Login(APIView):
             return JsonResponse({"status": 500, "title": "Internal server Error", "success": False, "message": "sorry you are not authorized to register", "error": e}, safe=False)
         return JsonResponse({"status": 200, "title": "OK", "success": True, "message": "Login successfully"}, safe=False)
 
-login = Login.as_view()
+checkLoginCredential = CheckLoginCredential.as_view()
 
 
