@@ -13,7 +13,7 @@ urlpatterns=[
   path('isEmailRegistered/',views.isEmailRegistered,name='isEmailRegistered'),
   path('registerUser/',views.registerUser,name='registerUser'),
   path('verifyPasscode/',views.verifyPasscode,name='verifyPasscode'),
-  path('login/',views.login,name='login'),
+  path('checkLoginCredential/',views.checkLoginCredential,name='checkLoginCredential'),
 
 
 
