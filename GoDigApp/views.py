@@ -283,6 +283,7 @@ class Login(APIView):
         # request_body = json.loads(request.body)
         # email = request_body["LoginEmail"].lower()
         # Password = request_body["Password"]
+        self.data =request.GET
         email = self.data("LoginEmail").lower()
         Password = self.data("Password")
         try:
