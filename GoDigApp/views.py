@@ -63,9 +63,9 @@ def saveCurrentPetroliumPrices(request):
     prices["CondensateRate"] = 44.7
     data.addNewRowInTable(tableName="petrolium_rates", values=prices, schema = "digipi")
     print(prices)
-    return Response({"message": "Petrolium Price uploaded", "status":200},status=status.HTTP_200_OK)
+    return Response({"message": "Petrolium Price uploaded", "title": "Ok", "status":200},status=status.HTTP_200_OK)
+
 class SendPasscode(APIView):
-    http_method_names = ['get']
     @staticmethod
     def sendPasscode(self):
         existPasscodecheck = None
@@ -89,9 +89,10 @@ class SendPasscode(APIView):
         except Exception as e:
             return Response({"status": 500, "message": f"Unable to send the passcode due to {e}", "title": "Internal server error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response({"status": 200,"message": "Passcode sent", "title": "OK"}, status=status.HTTP_200_OK)
-    def get(self,request):
-        # self.data = json.loads(request.body)
-        self.data = request.GET
+    
+    def post(self,request):
+        print(request.body)
+        self.data = json.loads(request.body)
         self.isEnroll = self.data["IsEnroll"]
         self.groupID = self.data["GroupID"]
         self.adminEmail = self.data["AdminEmail"]
@@ -143,7 +144,6 @@ class SendPasscode(APIView):
 
 sendPasscode = SendPasscode.as_view()
 class VerifyPascode(APIView):
-    http_method_names = ['get']
     def get(self, request):
         # self.data = json.loads(request.body)
         self.data = request.GET
@@ -167,7 +167,6 @@ class VerifyPascode(APIView):
 
 verifyPasscode = VerifyPascode.as_view()   
 class EnrollUser(APIView):
-    http_method_names = ['post']
     def post(self, request):
         self.data = json.loads(request.body)
         self.email = self.data["PasscodeEmail"].lower()
@@ -222,20 +221,18 @@ class EnrollUser(APIView):
                 authUserEmail.save()
             except Exception as e:
                 return Response({"message": f"Error from server end due to {e}", "title": "Internal server error","status":500}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        return Response({"message": f"User has been Enrolled {self.email}", "title": "OK"}, status=status.HTTP_200_OK)
+        return Response({"message": f"User has been Enrolled {self.email}", "title": "OK", "status":200}, status=status.HTTP_200_OK)
 
 
 enrollUser = EnrollUser.as_view()
 class IsEmailRegistered(APIView):
     def get(self, request):
         self.data = request.GET
-        # self.data = json.loads(request.body)
-        # self.userEmail=self.data["UserEmail"]
         self.userEmail = self.data['UserEmail']
         self.ObjectUserTable = User.objects.filter(emailid=self.userEmail)
         if len(self.ObjectUserTable) > 0:
-            return Response({"title": "CONFLICT", "message": f"Email id {self.userEmail} already been presented"}, status=status.HTTP_409_CONFLICT)
-        return Response({"message": "User is not registered", "title": "Not Found"},status=status.HTTP_404_NOT_FOUND)
+            return Response({"title": "CONFLICT", "message": f"Email id {self.userEmail} is already registered in database", "status":409} , status=status.HTTP_409_CONFLICT)
+        return Response({"message": "User", "title": "Ok", "status":200},status=status.HTTP_200_OK)
 
 isEmailRegistered = IsEmailRegistered.as_view()
 class RegisterUser(APIView):
@@ -285,8 +282,8 @@ class CheckLoginCredential(APIView):
         # email = request_body["LoginEmail"].lower()
         # Password = request_body["Password"]
         self.data =request.GET
-        email = self.data("LoginEmail").lower()
-        Password = self.data("Password")
+        email = self.data["LoginEmail"].lower()
+        Password = self.data["Password"]
         try:
             auth_user = AuthUserEmails.objects.filter(emailid=email)
             if len(auth_user) > 0:
