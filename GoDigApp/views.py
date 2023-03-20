@@ -63,7 +63,7 @@ def saveCurrentPetroliumPrices(request):
     prices["CondensateRate"] = 44.7
     data.addNewRowInTable(tableName="petrolium_rates", values=prices, schema = "digipi")
     print(prices)
-    return JsonResponse({"message": "Petrolium Price uploaded", "status":200})
+    return Response({"message": "Petrolium Price uploaded", "status":200},status=status.HTTP_200_OK)
 class SendPasscode(APIView):
     http_method_names = ['get']
     @staticmethod
@@ -87,8 +87,8 @@ class SendPasscode(APIView):
                 login = LoginUuids(uuid=key, emailid=email, createdon=create_date)
                 login.save()
         except Exception as e:
-            return Response({"message": f"Unable to send the passcode due to {e}", "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        return Response({"message": "Passcode sent", "title": "OK"}, status=status.HTTP_200_OK)
+            return Response({"status": 500, "message": f"Unable to send the passcode due to {e}", "title": "Internal server error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"status": 200,"message": "Passcode sent", "title": "OK"}, status=status.HTTP_200_OK)
     def get(self,request):
         # self.data = json.loads(request.body)
         self.data = request.GET
@@ -99,15 +99,15 @@ class SendPasscode(APIView):
         if self.isEnroll:
             try:
                 ObjectGroupAdminTable = GroupAdmins.objects.filter(adminemailid=self.adminEmail)
-            except:
-                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
-            if len(ObjectGroupAdminTable) == 0: return Response(status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return Response({"status": 500, "message": f"Unable to send the passcode due to {e}", "title": "Internal server error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            if len(ObjectGroupAdminTable) == 0: return Response({'message': 'Sorry! You are not allowed to get passcode.',"status":400,"title":"Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
+
             tableAdminId = ObjectGroupAdminTable[0].adminid
             try:
                 self.objectAuthUserEmailsTable = AuthUserEmails.objects.filter(emailid=self.passcodeEmail,adminid=tableAdminId)
-            except:
-                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except Exception as e:
+                return Response({"status": 500, "message": f"Unable to send the passcode due to {e}", "title": "Internal server error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             if len(self.objectAuthUserEmailsTable) == 0: return Response(status=status.HTTP_400_BAD_REQUEST)
             tableAdminId = self.objectAuthUserEmailsTable[0].adminid.adminid
@@ -115,29 +115,31 @@ class SendPasscode(APIView):
 
             try:
                 self.tableGroups = Groups.objects.get(groupid=tablePermitAs)
-            except:
-                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except Exception as e:
+                return Response({"status": 500, "message": f"Unable to send the passcode due to {e}", "title": "Internal server error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             if not (tablePermitAs == self.groupID):
-                return JsonResponse({"status": 400, "title": "Bad Request", "message": "Sorry! You are not authorized to  Register as you want."})
+                return Response({'message': 'Sorry! You are not authorized to  Register as you want.',"status":400,"title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
             self.isEnrollsendPasscode = self.sendPasscode(self)
             if not self.isEnrollsendPasscode.status_code == 200:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+                return Response({'message': 'Sorry! You are not authorized to  Register as you want.',"status":400,"title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
         elif self.groupID == 4:
             self.groupIdSendPasscode = self.sendPasscode(self)
         else:
             try:
                 ObjectGroupAdminTable = GroupAdmins.objects.filter(adminemailid=self.adminEmail)
-            except:
-                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except Exception as e:
+                return Response({"status": 500, "message": f"Unable to send the passcode due to {e}", "title": "Internal server error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             try:
                 ObjectAuthUserEmail = AuthUserEmails.objects.filter(emailid=self.passcodeEmail)
-            except:
-                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            if len(ObjectGroupAdminTable) == 0: return Response(status=status.HTTP_400_BAD_REQUEST)
-            if len(ObjectAuthUserEmail) == 0: return Response({"message":"You are not authorized to register as you want, Please try to register as User"},status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return Response({"status": 500, "message": f"Unable to send the passcode due to {e}", "title": "Internal server error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            if len(ObjectGroupAdminTable) == 0:
+                return Response({'message': 'Sorry! You are not authorized to  Register as you want.',"status":400,"title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
+            if len(ObjectAuthUserEmail) == 0: return Response({"message":"You are not authorized to register as you want, Please try to register as User","status":400,"title":"Bad Request"},status=status.HTTP_400_BAD_REQUEST)
             self.groupIdSendPasscode = self.sendPasscode(self)
-        return Response(status=status.HTTP_200_OK)
+        return Response({"status": 200,"message": "Passcode sent", "title": "OK"}, status=status.HTTP_200_OK)
 
 sendPasscode = SendPasscode.as_view()
 class VerifyPascode(APIView):
@@ -151,16 +153,16 @@ class VerifyPascode(APIView):
         email = self.data['PasscodeEmail']
         try:
             self.isVerifiedPasscode = LoginUuids.objects.filter(emailid=email)
-        except:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({"status": 500, "message": f"Unable to send the passcode due to {e}", "title": "Internal server error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if len(self.isVerifiedPasscode) > 0:
             if not self.isVerifiedPasscode[0].expireon.astimezone(timezone.utc).replace(tzinfo=None) >= create_date:
-                return Response({"message": "Your passcode is expired, Please do send the passcode again", "title": "UNAUTHORIZED"}, status=status.HTTP_401_UNAUTHORIZED)
+                return Response({"message": "Your passcode is expired, Please do send the passcode again", "title": "UNAUTHORIZED","status":401}, status=status.HTTP_401_UNAUTHORIZED)
         elif not len(self.isVerifiedPasscode) > 0:
-            return Response({"message": "Opps! there is not passcode to verify. Please do send the passcode again and then try to verify", "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "Opps! there is not passcode to verify. Please do send the passcode again and then try to verify", "title": "Bad Request","status":400}, status=status.HTTP_400_BAD_REQUEST)
         loginPasscode = self.isVerifiedPasscode[0].uuid
         if passcode != loginPasscode:
-            return Response({"message": "Your passcode did not match", "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "Your passcode did not match", "title": "Bad Request","status":400}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"message": "Your passcode has matched", "title": "OK"}, status=status.HTTP_200_OK)
 
 verifyPasscode = VerifyPascode.as_view()   
@@ -176,65 +178,64 @@ class EnrollUser(APIView):
         try:
             self.ObjectAuthUserTable = AuthUserEmails.objects.filter(emailid=self.email)
             self.ObjectUserTable = User.objects.filter(emailid=self.email)
-        except:
-            return Response({"message": "Error from server end", "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({"message": "Error from server end", "title": "Internal server error","status":500}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         try:
             self.groupAdmin = GroupAdmins.objects.filter(adminemailid=self.adminEmail)
-        except:
-            return Response({"message": "Error from server end", "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({"message": f"Error from server end due to {e}", "title": "Internal server error","status":500}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if not self.groupAdmin:
-            return Response({"message":"you are not alowed to enroll the user"},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message":"you are not alowed to enroll the user","status":400},status=status.HTTP_400_BAD_REQUEST)
         if len(self.ObjectAuthUserTable) > 0:
-            return Response({"message": "Already Enrolled", "title": "Bad Request"},status=status.HTTP_409_CONFLICT)
+            return Response({"message": "Already Enrolled", "title": "Bad Request","status":409},status=status.HTTP_409_CONFLICT)
         if len(self.ObjectUserTable) > 0:
             if len(self.groupAdmin) == 0:
-                return Response({"message": "You are not allowed to register", "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"message": "You are not allowed to register", "title": "Bad Request","status":400}, status=status.HTTP_400_BAD_REQUEST)
             try:
                 authUserEmail = AuthUserEmails(emailid=self.email, permitas=self.groupId, adminid=self.groupAdmin[0])
                 authUserEmail.save()
                 self.groupTable = Groups.objects.get(groupid=self.groupId)
-            except:
-                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except Exception as e:
+                return Response({"message": f"Error from server end due to {e}", "title": "Internal server error","status":500}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             if self.groupTable:
                 user = User(groupid=self.groupTable)
                 user.save()
         elif self.isadmin:
             try:
                 groupsTable = Groups.objects.get(groupid=self.groupId)
-            except:
-                return Response({"message": "Error from server end", "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except Exception as e:
+                return Response({"message": "Error from server end", "title": "Internal server error","status":500}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             try:
                 self.objectGroupAdmin, self.GroupAdminTable =  GroupAdmins.objects.get_or_create(adminemailid=self.email,adminname=self.name,groupid=groupsTable)
                 if not self.GroupAdminTable:
-                    return Response({"title": "CONFLICT", "message": f"Email id {self.email} already been presented"}, status=status.HTTP_409_CONFLICT)
-            except:
-                return Response({"message": "Error from server end", "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    return Response({"title": "CONFLICT", "message": f"Email id {self.email} already been presented","status":409}, status=status.HTTP_409_CONFLICT)
+            except Exception as e:
+                return Response({"message": "Error from server end", "title": "Internal server error","status":500}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             try:
                 authUserEmail = AuthUserEmails(emailid=self.email, permitas=self.groupId, adminid=self.groupAdmin[0])
                 authUserEmail.save()
-            except:
-                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except Exception as e:
+                return Response({"message": f"Error from server end due to {e}", "title": "Internal server error","status":500}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             try:
                 authUserEmail = AuthUserEmails(emailid=self.email, permitas=self.groupId, adminid=self.groupAdmin[0])
                 authUserEmail.save()
-            except:
-                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        return Response(status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({"message": f"Error from server end due to {e}", "title": "Internal server error","status":500}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"message": f"User has been Enrolled {self.email}", "title": "OK"}, status=status.HTTP_200_OK)
+
 
 enrollUser = EnrollUser.as_view()
 class IsEmailRegistered(APIView):
     def get(self, request):
         self.data = request.GET
-        import pdb
-        pdb.set_trace()
         # self.data = json.loads(request.body)
         # self.userEmail=self.data["UserEmail"]
         self.userEmail = self.data['UserEmail']
         self.ObjectUserTable = User.objects.filter(emailid=self.userEmail)
         if len(self.ObjectUserTable) > 0:
-            return Response(status=status.HTTP_409_CONFLICT)
-        return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response({"title": "CONFLICT", "message": f"Email id {self.userEmail} already been presented"}, status=status.HTTP_409_CONFLICT)
+        return Response({"message": "User is not registered", "title": "Not Found"},status=status.HTTP_404_NOT_FOUND)
 
 isEmailRegistered = IsEmailRegistered.as_view()
 class RegisterUser(APIView):
@@ -258,22 +259,22 @@ class RegisterUser(APIView):
             """If User will not register as a User """
             try:
                 self.tableGroupAdmins = GroupAdmins.objects.filter(adminemailid=self.userEmail)
-            except:
-                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except Exception as e:
+                return Response({"message": "Error from server end", "title": "Internal server error","status":500}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             if len(self.tableGroupAdmins) == 0:
                 isadmin = 0
             else:
                 isadmin = self.tableGroupAdmins
             try:
                 self.tableGroups = Groups.objects.get(groupid=self.groupId)
-            except:
-                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except Exception as e:
+                return Response({"message": "Error from server end", "title": "Internal server error","status":500}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             try:
                 userTable = User(username=self.userName,password=self.password,groupid=self.tableGroups,emailid=self.userEmail,isadmin=isadmin,datecreated=self.DateTime,contactno = self.number)
                 userTable.save()
-            except:
-                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        return Response({"message": "Passcode sent", "title": "OK"}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({"message": f"Error from server end due to {e}", "title": "Internal server error","status":500}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"message": "Passcode sent", "title": "OK","status":200}, status=status.HTTP_200_OK)
 
 registerUser = RegisterUser.as_view()
 
@@ -292,16 +293,16 @@ class CheckLoginCredential(APIView):
                 tableEmailId = auth_user[0].emailid
                 userEmail = User.objects.filter(emailid=tableEmailId)
             else:
-                return JsonResponse({"message": "Please Enter Correct Email ID", "status": 406, "title": "NOT ACCEPTABLE"}, safe=False)
+                return Response({"message": "Please Enter Correct Email ID", "status": 406, "title": "NOT ACCEPTABLE"}, status=status.HTTP_406_NOT_ACCEPTABLE)
         except Exception as e:
-            return JsonResponse({"status": 500, "title": "Internal server Error", "success": False, "message": "sorry you are not authorized to register", "error": e}, safe=False)
+            return Response({"status": 500, "title": "Internal server Error", "message": f"sorry! Internal server error due to {e}",}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         if userEmail:
             getPassword = userEmail[0].password
             if Password != getPassword:
-                return JsonResponse({"message": "Entered Password is wrong", "status": 406, "title": "NOT ACCEPTABLE"}, safe=False)
+                return Response({"message": "Entered Password is wrong", "status": 406, "title": "NOT ACCEPTABLE"}, status=status.HTTP_406_NOT_ACCEPTABLE)
         else:
-            return JsonResponse({"status": 500, "title": "Internal server Error", "success": False, "message": "sorry you are not authorized to register", "error": e}, safe=False)
-        return JsonResponse({"status": 200, "title": "OK", "success": True, "message": "Login successfully"}, safe=False)
+            return Response({"message": "User is not registered", "title": "Not Found"},status=status.HTTP_404_NOT_FOUND)
+        return Response({"status": 200, "title": "OK", "message": "Login successfully"}, status=status.HTTP_200_OK)
 
 checkLoginCredential = CheckLoginCredential.as_view()
 
