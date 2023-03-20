@@ -37,7 +37,7 @@ class PasswordValidator:
         self.at_least_one_special = at_least_one_special
         self.password = Password
 
-    def validate(self):
+    def getPasswordValidation(self):
         message = None
         if len(self.password) < self.min_length:
             message = 'Minimum length 8'
@@ -51,7 +51,4 @@ class PasswordValidator:
             message = 'Password must contain at least one digit.'
         elif self.at_least_one_special and not re.search(r'[~!@#$%^&*()_+}{":?><,./;\'\[\]\\|=]', self.password):
             message = 'Password must contain at least one special character.'
-        if message:
-            return message
-        else:
-            return True
+        return message

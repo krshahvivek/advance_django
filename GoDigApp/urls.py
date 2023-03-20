@@ -8,16 +8,14 @@ app_name = "GoDigApp"
 
 urlpatterns=[
   path('savePetroliumPrice/', views.saveCurrentPetroliumPrices),
-  path('enrollUser/',views.enrollUser),
-  # path('getPasscode/',views.getPasscode),
-  path('verifyAllFields/',views.verifyAllFields,name='verifyAllFields'),
-  # path('verifyPasscode/',views.verify_passcode,name='verifyPasscode'),
-  path('registration/',views.registration,name='registration'),
-  path('login/',views.login,name='login'),
-  path('csvToTable/',views.CSVIntoProductionTable,name='CSVIntoProductionTable'),
-  path('getOilData/',views.getOilProductionData,name='getOilProductionData'),
-  path('getGasData/',views.getOilProductionData,name='getGasProductionData'),
-  path('getCBMData/',views.getOilProductionData,name='getCBMProductionData'),
-  path('getCondensateData/',views.getOilProductionData,name='getCondensateProductionData'),
+  path('enrolluser/',views.enrolluser),
+  path('sendPasscode/',views.sendPasscode,name='sendPasscode'),
+  path('isEmailRegistered/',views.isEmailRegistered,name='isEmailRegistered'),
+  path('registeruser/',views.registeruser,name='registeruser'),
+  path('verifyPasscode/',views.verifyPasscode,name='verifyPasscode')
   
+  
+
+
+
 ]

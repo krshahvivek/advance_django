@@ -29,6 +29,8 @@ from django.core.validators import RegexValidator
 from django.db import DatabaseError, IntegrityError
 from rest_framework import status
 from rest_framework.response import Response
+from datetime import timezone
+
 
 @csrf_exempt
 def saveCurrentPetroliumPrices(request):
@@ -62,299 +64,230 @@ def saveCurrentPetroliumPrices(request):
     data.addNewRowInTable(tableName="petrolium_rates", values=prices, schema = "digipi")
     print(prices)
     return JsonResponse({"message": "Petrolium Price uploaded", "status":200})
-
-
-class GetFieldVerified(APIView):
-    def get(self, request):
-        self.data = json.loads(request.body)
-        fields = self.getFieldVerified()
-        if fields.status_code == 200:
-            return Response({'success':True, 'message': 'All field verified'},  status=status.HTTP_200_OK)
-        else:
-            return Response({'success':False,'message': fields.data['message']}, status=status.HTTP_400_BAD_REQUEST)
-    def getPasscodeField(self):
-        Email = self.data["Email"].lower()
-        RegisterAs = self.data.get('GroupID') if self.data.get('GroupID') else None
-        AdminEmail = self.data.get('AdminID').lower() if self.data.get('AdminID') else None
-        if not RegisterAs:
-            return Response({'success':False,'message': 'Group ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not Email:
-            return Response({'success':False,'message': 'Email ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not Validation().emailValidate(email=Email):
-            return Response({'success':False,'message': 'Not Valid Email'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not AdminEmail:
-            return Response({'success':False,'message': 'Admin ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not Validation().emailValidate(email=AdminEmail):
-            return Response({'success':False,'message': 'Not Valid Admin Email'}, status=status.HTTP_400_BAD_REQUEST)
-        return Response({'success':True, 'message': 'All field verified'},  status=status.HTTP_200_OK)
-    def enrollField(self):
-        Email = self.data["Email"].lower()
-        AdminEmail = self.data.get('AdminID').lower() if self.data.get('AdminID') else None
-        RegisterAs = self.data['GroupID'] if self.data.get('GroupID') else None
-        if not RegisterAs:
-            return Response({'success':False,'message': 'Group ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not Email:
-            return Response({'success':False,'message': 'Email ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not Validation().emailValidate(email=Email):
-            return Response({'success':False,'message': 'Not Valid Email'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not AdminEmail:
-            return Response({'success':False,'message': 'Admin ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not Validation().emailValidate(email=AdminEmail):
-            return Response({'success':False,'message': 'Not Valid Admin Email'}, status=status.HTTP_400_BAD_REQUEST)
-        return Response({'success':True, 'message': 'All field verified'},  status=status.HTTP_200_OK)
-    def getFieldVerified(self):
-        Name = self.data["Name"] if self.data.get("Name") else None
-        Number = self.data["Number"] if self.data.get("Number") else None
-        Email = self.data["Email"].lower() if self.data.get("Email") else None
-        Password = self.data["Password"] if self.data.get("Password") else None
-        ConfirmPassword = self.data["ConfirmPassword"] if self.data.get("ConfirmPassword") else None
-        RegisterAs = self.data.get('GroupID') if self.data.get('GroupID') else None
-        AdminEmail = self.data.get('AdminID').lower() if self.data.get('AdminID') else None
-        if not Name:
-            return Response({'success':False,'message': 'Name is required'}, status=status.HTTP_400_BAD_REQUEST)
-        if not RegisterAs:
-            return Response({'success':False,'message': 'Group ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not Email:
-            return Response({'success':False,'message': 'Email ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not Validation().emailValidate(email=Email):
-            return Response({'success':False,'message': 'Not Valid Email'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not AdminEmail:
-            return Response({'success':False,'message': 'Admin ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not Validation().emailValidate(email=AdminEmail):
-            return Response({'success':False,'message': 'Not Valid AdminID'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not Number:
-            return Response({'success':False,'message': 'Number is required'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not valid_mobile(Number):
-            return Response({'success':False,'message': 'Not Valid Number'}, status=status.HTTP_400_BAD_REQUEST)        
-        elif not Password:
-            return Response({'success':False,'message': 'Not Valid Password'}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            obj= PasswordValidator(Password)
-            objFuction = obj.validate()
-            if not objFuction == True:
-                return Response({'success':False,'message': objFuction}, status=status.HTTP_400_BAD_REQUEST)
-            if not Password == ConfirmPassword:
-                return Response({'success':False,'message': 'Not Matched Password'}, status=status.HTTP_400_BAD_REQUEST)
-        return Response({'success':True, 'message': 'All field verified'},  status=status.HTTP_200_OK)
-verifyAllFields = GetFieldVerified.as_view()    
-class EnrollUser(GetFieldVerified, APIView):
-    http_method_names = ['post']
-    def post(self, request):
-        print('class driving')
-        isValid, obj = (None,)*2
-        self.data = json.loads(request.body)
-        fieldVelidation = self.enrollField()
-        if fieldVelidation.status_code == 200 :
-            # if not (email and groupId and adminId):
-            #     return JsonResponse({"message": "Please Enter your Admin Id, Email and group id", "status": 406, "title": "NOT ACCEPTABLE"}, safe=False)
-            # isValid = Validation().emailValidate(email=email)
-            # if not isValid:
-            #     return JsonResponse({"message": "Please Enter Valid Email ID", "status": 406, "title": "NOT ACCEPTABLE"}, safe=False)
-            email = self.data["Email"].lower()
-            adminId = self.data["AdminID"]
-            groupId = self.data["GroupID"]
-            try:
-                groupAdmin = GroupAdmins.objects.filter(adminemailid=adminId)
-                obj, isValid = AuthUserEmails.objects.get_or_create(
-                    emailid=email, permitas=groupId, adminid=groupAdmin[0])
-            except AuthUserEmails.MultipleObjectsReturned:
-                isValid = AuthUserEmails.objects.filter(emailid=email).first()
-                isValid = False
-            if isValid:
-                return Response({"title": "OK", "message": f"Email id {email} successfully has been saved"}, status=status.HTTP_201_CREATED)
-            else:
-                return Response({"title": "CONFLICT", "message": f"Email id {email} already been presented"}, status=status.HTTP_409_CONFLICT)
-        else:
-            return JsonResponse({"message": "Please Enter your Admin Id, Email and group id", "title": "NOT ACCEPTABLE"}, status=status.HTTP_406_NOT_ACCEPTABLE)
-enrollUser = EnrollUser.as_view()
-
-
-class VerifyPasscode(APIView):
-    # http_method_names = ['get']
-    def verifyPasscode(self):
-        passcode = self.data['Passcode'] if self.data['Passcode'] else None
-        email = self.data['Email']
-        loginPasscode = None
-        loginID = LoginUuids.objects.filter(emailid=email).order_by('-id')
-        loginPasscode = loginID[0].uuid
-        if passcode == loginPasscode:
-            return Response({"message": "Your passcode matched", "title": "OK"}, status=status.HTTP_200_OK)
-        else:
-            return Response({"message": "Your passcode not matched", "title": "ACCEPTABLE"}, status=status.HTTP_202_ACCEPTED)
-# verify_passcode = VerifyPasscode.as_view(get='verifyPasscode')
-
-class Registration(GetFieldVerified,VerifyPasscode, APIView):
-    
-    http_method_names = ['get','post']
-    
+class SendPasscode(APIView):
+    http_method_names = ['get']
     @staticmethod
-    def getGroupId(self):
-        RegisterAs = self["GroupID"] if self["GroupID"] else None
-        if not RegisterAs:
-            return 0
-        elif RegisterAs > 4:
-            return 0
-        elif RegisterAs != 4:
-            return RegisterAs
-        elif RegisterAs == 4:
-            return RegisterAs
-   
-    @staticmethod
-    def adminEmailId(self):
-        EnterAdminEmail = self["AdminID"].lower() if self["AdminID"] else None
-        if not EnterAdminEmail:
-            return 0
-        elif Validation().emailValidate(email=EnterAdminEmail):
-            return EnterAdminEmail
-        else:
-            return 0
-    
-    @staticmethod
-    def getPasscode(self):
-        import pdb
-        pdb.set_trace()
-        email = self.data["Email"]
+    def sendPasscode(self):
+        existPasscodecheck = None
+        email = self.data["PasscodeEmail"]
         keygen = GenerateKey()
         create_date = datetime.datetime.today()
         try:
-            key = keygen.send(email, recipients=[email])
-            login = LoginUuids(uuid=key, emailid=email, createdon=create_date)
-            login.save()
-            return True
-        except:
-            return False
-    
-    @staticmethod
-    def UserTable(self):
-        name = self.name
-        password = self.password
-        tableGroups = self.tableGroups
-        email = self.email
-        isadmin = 1 if self.groupID == 1 else 0
-        DateTime = datetime.datetime.today()
-        # number = self.number
-        try:
-            obj, created = User.objects.get_or_create(
-                username=name,
-                password=password,
-                groupid=tableGroups,
-                emailid=email,
-                isadmin=isadmin,
-                datecreated=DateTime,
-                # number = number
-                )
-            if created:
-                return 1
+            existPasscodecheck = LoginUuids.objects.filter(emailid=email)
+            if existPasscodecheck:
+                if existPasscodecheck[0].expireon.astimezone(timezone.utc).replace(tzinfo=None) >= create_date:
+                    key = keygen.send(email,recipients=[email],key=existPasscodecheck[0].uuid)
+                else:
+                    existPasscodecheck[0].delete()
+                    key = keygen.send(email,recipients=[email],key=None)
+                    login = LoginUuids(uuid=key, emailid=email, createdon=create_date)
+                    login.save()
             else:
-                return 0
-        except:
-            return False
-    
-    def get(self, request):
-        self.data = json.loads(request.body)
-        fieldVelidation =  self.getPasscodeField()
-        groupID = self.getGroupId(self.data)
-        adminEmail = self.adminEmailId(self.data)
-        self.email = self.data["Email"].lower()
-        if not fieldVelidation.status_code == 200:
-            return Response({"message": fieldVelidation.data['message'], "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
-        elif groupID == 4:
-            if self.getPasscode(self):
-                return Response({"title": "OK",'success':False,'message': f"Data sent to you email id - {self.email}"}, status=status.HTTP_200_OK)
-            else:
-                return Response({"title": "Internal Server Error",'success':False,'message': 'Sorry! Error from server end.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        else:
+                key = keygen.send(email,recipients=[email],key=None)
+                login = LoginUuids(uuid=key, emailid=email, createdon=create_date)
+                login.save()
+        except Exception as e:
+            return Response({"message": f"Unable to send the passcode due to {e}", "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"message": "Passcode sent", "title": "OK"}, status=status.HTTP_200_OK)
+    def get(self,request):
+        # self.data = json.loads(request.body)
+        self.data = request.GET
+        self.isEnroll = self.data["IsEnroll"]
+        self.groupID = self.data["GroupID"]
+        self.adminEmail = self.data["AdminEmail"]
+        self.passcodeEmail = self.data["PasscodeEmail"]
+        if self.isEnroll:
             try:
-                auth_user = AuthUserEmails.objects.filter(emailid=self.email)
-                tableAdminId = auth_user[0].adminid.adminid
-                groupAdmintable = GroupAdmins.objects.get(adminid=tableAdminId)
-                tableAdminEmail = groupAdmintable.adminemailid
-                tablePermitAs = auth_user[0].permitas
-                emailid = auth_user[0].emailid
-                if not (tableAdminEmail == adminEmail):
-                    return Response({'success':False,'message': 'Sorry! You are not authorized to  Register as you want.'}, status=status.HTTP_400_BAD_REQUEST)
-                elif not (tablePermitAs == groupID):
-                    return Response({'success':False,'message': 'Sorry! You are not authorized to  Register as you want.'}, status=status.HTTP_400_BAD_REQUEST)
-                elif emailid == self.email:
-                    if self.getPasscode(self):
-                        return Response({"title": "OK",'success':False,'message': f"Data sent to you email id - {self.email}"}, status=status.HTTP_200_OK)
-                    else:
-                        return Response({"title": "Internal Server Error",'success':False,'message': 'Sorry! Error from server end.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            except Exception as e:
-                return Response({"title": "Internal Server Error",'success':False,'message': f'Sorry! Error from server end. {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    def post(self, request):
-        auth_user, adminEmail, matchedPasscode = (None,)*3
-        self.data = json.loads(request.body)
-        self.EnterPassCode = self.data["Passcode"]
-        fieldVelidation =  self.getFieldVerified()
-        self.groupID = self.getGroupId(self.data)
-        adminEmail = self.adminEmailId(self.data)
-        if not fieldVelidation.status_code == 200:
-            return Response({"message": fieldVelidation.data['message'], "title": "NOT ACCEPTABLE"}, status=status.HTTP_406_NOT_ACCEPTABLE)
-        else:
-            self.name = self.data["Name"]
-            self.email = self.data["Email"].lower()
-            self.password = self.data["Password"]
-            # self.number = self.data["Number"]
-        if self.groupID == 4:
-            matchedPasscode = self.verifyPasscode()
-        else:
+                ObjectGroupAdminTable = GroupAdmins.objects.filter(adminemailid=self.adminEmail)
+            except:
+                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            if len(ObjectGroupAdminTable) == 0: return Response(status=status.HTTP_400_BAD_REQUEST)
+            tableAdminId = ObjectGroupAdminTable[0].adminid
             try:
-                auth_user = AuthUserEmails.objects.filter(emailid=self.email)
-                tableAdminId = auth_user[0].adminid.adminid
-                groupAdmintable = GroupAdmins.objects.get(adminid=tableAdminId)
-                tableAdminEmail = groupAdmintable.adminemailid
-                tablePermitAs = auth_user[0].permitas
+                self.objectAuthUserEmailsTable = AuthUserEmails.objects.filter(emailid=self.passcodeEmail,adminid=tableAdminId)
+            except:
+                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            if len(self.objectAuthUserEmailsTable) == 0: return Response(status=status.HTTP_400_BAD_REQUEST)
+            tableAdminId = self.objectAuthUserEmailsTable[0].adminid.adminid
+            tablePermitAs = self.objectAuthUserEmailsTable[0].permitas
+
+            try:
                 self.tableGroups = Groups.objects.get(groupid=tablePermitAs)
-                if not (tableAdminEmail == adminEmail):
-                    return JsonResponse({"status": 400, "title": "Bad Request", "message": "Sorry! You are not authorized to Register."})
-                elif not (tablePermitAs == self.groupID):
-                    return JsonResponse({"status": 400, "title": "Bad Request", "message": "Sorry! You are not authorized to  Register as you want."})
-                emailid = auth_user[0].emailid
-                if emailid == self.email:
-                    matchedPasscode = self.verifyPasscode()
-            except Exception as e:
-                return JsonResponse({"status": 500, "title": "Internal server Error", "success": False, "message": f"{e}"}, safe=False)
-        if not matchedPasscode.status_code == 200:  return JsonResponse({"status": 400, "title": "Bad Request", "message": "You are registring wrong user type"}, safe=False)
-        if self.groupID == 4:
-            """If User will register as a User"""
-            self.tableGroups = Groups.objects.get(groupid=self.groupID)
-            userTable = self.UserTable(self)
-            if userTable==False:
-                return JsonResponse({"status": 500, "title": "Internal server Error", "success": False, "message": "Something happened to the server side", "error": e}, safe=False)
-            elif userTable == 0:
-                return JsonResponse({"status": 409, "title": "CONFLICT", "success": False, "message": "sorry you are already registered"}, safe=False)  
-            else:
-                return JsonResponse({"status": 200, "title": "OK", "message": "Registered Successfully."}, safe=False) 
+            except:
+                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            if not (tablePermitAs == self.groupID):
+                return JsonResponse({"status": 400, "title": "Bad Request", "message": "Sorry! You are not authorized to  Register as you want."})
+            self.isEnrollsendPasscode = self.sendPasscode(self)
+            if not self.isEnrollsendPasscode.status_code == 200:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+        elif self.groupID == 4:
+            self.groupIdSendPasscode = self.sendPasscode(self)
+        else:
+            try:
+                ObjectGroupAdminTable = GroupAdmins.objects.filter(adminemailid=self.adminEmail)
+            except:
+                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            try:
+                ObjectAuthUserEmail = AuthUserEmails.objects.filter(emailid=self.passcodeEmail)
+            except:
+                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            if len(ObjectGroupAdminTable) == 0: return Response(status=status.HTTP_400_BAD_REQUEST)
+            if len(ObjectAuthUserEmail) == 0: return Response({"message":"You are not authorized to register as you want, Please try to register as User"},status=status.HTTP_400_BAD_REQUEST)
+            self.groupIdSendPasscode = self.sendPasscode(self)
+        return Response(status=status.HTTP_200_OK)
+
+sendPasscode = SendPasscode.as_view()
+class VerifyPascode(APIView):
+    http_method_names = ['get']
+    def get(self, request):
+        # self.data = json.loads(request.body)
+        self.data = request.GET
+        loginPasscode = None
+        passcode = self.data['Passcode']
+        create_date = datetime.datetime.today()
+        email = self.data['PasscodeEmail']
+        try:
+            self.isVerifiedPasscode = LoginUuids.objects.filter(emailid=email)
+        except:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        if len(self.isVerifiedPasscode) > 0:
+            if not self.isVerifiedPasscode[0].expireon.astimezone(timezone.utc).replace(tzinfo=None) >= create_date:
+                return Response({"message": "Your passcode is expired, Please do send the passcode again", "title": "UNAUTHORIZED"}, status=status.HTTP_401_UNAUTHORIZED)
+        elif not len(self.isVerifiedPasscode) > 0:
+            return Response({"message": "Opps! there is not passcode to verify. Please do send the passcode again and then try to verify", "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
+        loginPasscode = self.isVerifiedPasscode[0].uuid
+        if passcode != loginPasscode:
+            return Response({"message": "Your passcode did not match", "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "Your passcode has matched", "title": "OK"}, status=status.HTTP_200_OK)
+
+verifyPasscode = VerifyPascode.as_view()   
+class EnrollUser(APIView):
+    http_method_names = ['post']
+    def post(self, request):
+        self.data = json.loads(request.body)
+        self.email = self.data["PasscodeEmail"].lower()
+        self.isadmin = self.data["IsEnroll"]
+        self.groupId = self.data["GroupID"]
+        self.adminEmail = self.data["AdminEmail"]
+        self.name = self.data["EnrollName"]
+        try:
+            self.ObjectAuthUserTable = AuthUserEmails.objects.filter(emailid=self.email)
+            self.ObjectUserTable = User.objects.filter(emailid=self.email)
+        except:
+            return Response({"message": "Error from server end", "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        try:
+            self.groupAdmin = GroupAdmins.objects.filter(adminemailid=self.adminEmail)
+        except:
+            return Response({"message": "Error from server end", "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        if not self.groupAdmin:
+            return Response({"message":"you are not alowed to enroll the user"},status=status.HTTP_400_BAD_REQUEST)
+        if len(self.ObjectAuthUserTable) > 0:
+            return Response({"message": "Already Enrolled", "title": "Bad Request"},status=status.HTTP_409_CONFLICT)
+        if len(self.ObjectUserTable) > 0:
+            if len(self.groupAdmin) == 0:
+                return Response({"message": "You are not allowed to register", "title": "Bad Request"}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                authUserEmail = AuthUserEmails(emailid=self.email, permitas=self.groupId, adminid=self.groupAdmin[0])
+                authUserEmail.save()
+                self.groupTable = Groups.objects.get(groupid=self.groupId)
+            except:
+                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            if self.groupTable:
+                user = User(groupid=self.groupTable)
+                user.save()
+        elif self.isadmin:
+            try:
+                groupsTable = Groups.objects.get(groupid=self.groupId)
+            except:
+                return Response({"message": "Error from server end", "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            try:
+                self.objectGroupAdmin, self.GroupAdminTable =  GroupAdmins.objects.get_or_create(adminemailid=self.email,adminname=self.name,groupid=groupsTable)
+                if not self.GroupAdminTable:
+                    return Response({"title": "CONFLICT", "message": f"Email id {self.email} already been presented"}, status=status.HTTP_409_CONFLICT)
+            except:
+                return Response({"message": "Error from server end", "title": "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            try:
+                authUserEmail = AuthUserEmails(emailid=self.email, permitas=self.groupId, adminid=self.groupAdmin[0])
+                authUserEmail.save()
+            except:
+                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            try:
+                authUserEmail = AuthUserEmails(emailid=self.email, permitas=self.groupId, adminid=self.groupAdmin[0])
+                authUserEmail.save()
+            except:
+                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(status=status.HTTP_200_OK)
+
+enrollUser = EnrollUser.as_view()
+class IsEmailRegistered(APIView):
+    def get(self, request):
+        self.data = request.GET
+        import pdb
+        pdb.set_trace()
+        # self.data = json.loads(request.body)
+        # self.userEmail=self.data["UserEmail"]
+        self.userEmail = self.data['UserEmail']
+        self.ObjectUserTable = User.objects.filter(emailid=self.userEmail)
+        if len(self.ObjectUserTable) > 0:
+            return Response(status=status.HTTP_409_CONFLICT)
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+isEmailRegistered = IsEmailRegistered.as_view()
+class RegisterUser(APIView):
+    def post(self,request):
+        self.data = json.loads(request.body)
+        self.userName = self.data["UserName"]
+        self.number = self.data["ContactNo"]
+        self.userEmail = self.data["UserEmail"]
+        self.groupId = self.data["GroupID"]
+        self.password = self.data["Password"]
+        self.adminEmail = self.data["AdminEmail"]
+        self.DateTime = datetime.datetime.today()
+        if self.groupId == 4:
+            """
+                If User will register as a User
+            """
+            self.tableGroups = Groups.objects.get(groupid=self.groupId)
+            created = User(username=self.userName,password=self.password,groupid=self.tableGroups,emailid=self.userEmail,isadmin=0,datecreated=self.DateTime,contactno = self.number)
+            created.save()
         else:
             """If User will not register as a User """
-            userTable = self.UserTable(self)
-            if userTable==False:
-                return JsonResponse({"status": 500, "title": "Internal server Error", "success": False, "message": "Something happened to the server side", "error": e}, safe=False)
-            elif userTable == 0:
-                return JsonResponse({"status": 409, "title": "CONFLICT", "success": False, "message": "sorry you are already registered"}, safe=False)  
+            try:
+                self.tableGroupAdmins = GroupAdmins.objects.filter(adminemailid=self.userEmail)
+            except:
+                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            if len(self.tableGroupAdmins) == 0:
+                isadmin = 0
             else:
-                return JsonResponse({"status": 200, "title": "OK", "message": "Registered Successfully."}, safe=False)          
-registration = Registration.as_view()
+                isadmin = self.tableGroupAdmins
+            try:
+                self.tableGroups = Groups.objects.get(groupid=self.groupId)
+            except:
+                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            try:
+                userTable = User(username=self.userName,password=self.password,groupid=self.tableGroups,emailid=self.userEmail,isadmin=isadmin,datecreated=self.DateTime,contactno = self.number)
+                userTable.save()
+            except:
+                return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"message": "Passcode sent", "title": "OK"}, status=status.HTTP_200_OK)
+
+registerUser = RegisterUser.as_view()
 
 class Login(APIView):
-    def post(request):
-        email, getPassword,userEmail = (None,)*3
-        request_body = json.loads(request.body)
-        Email = request_body["Email"] if request_body["Email"] else None
-        Password = request_body["Password"]  if request_body["Password"] else None
-        if not Email:
-            return Response({'success':False,'message': 'Pleas provide email'}, status=status.HTTP_400_BAD_REQUEST)
-        elif not Password:
-            return Response({'success':False,'message': 'Pleas provide Password'}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            email = Email.lower()
-            validEmail = Validation().emailValidate(email=email)
-            if not validEmail:
-                return JsonResponse({"message": "Please Enter Valid Email ID", "status": 406, "title": "NOT ACCEPTABLE"}, safe=False)
+    def get(self, request):
+        userEmail = None
+        # request_body = json.loads(request.body)
+        # email = request_body["LoginEmail"].lower()
+        # Password = request_body["Password"]
+        email = self.data("LoginEmail").lower()
+        Password = self.data("Password")
         try:
             auth_user = AuthUserEmails.objects.filter(emailid=email)
-            if auth_user:
+            if len(auth_user) > 0:
                 tableEmailId = auth_user[0].emailid
                 userEmail = User.objects.filter(emailid=tableEmailId)
             else:
@@ -368,97 +301,7 @@ class Login(APIView):
         else:
             return JsonResponse({"status": 500, "title": "Internal server Error", "success": False, "message": "sorry you are not authorized to register", "error": e}, safe=False)
         return JsonResponse({"status": 200, "title": "OK", "success": True, "message": "Login successfully"}, safe=False)
+
 login = Login.as_view()
 
 
-@csrf_exempt
-def CSVIntoProductionTable(request):
-    if request.method != "POST" and request.FILES["csv_file"]:
-        return JsonResponse({"status": 405, "title": "Method not allowed", "message": f"{request.method} method not allowed."}, safe=False)
-    wellId = None
-    excel_file = request.FILES["csv_file"]
-    df = pd.read_excel(excel_file)
-    if df.items():
-        for index, row in df.iterrows():
-            if Productions.objects.filter(wellid=row[2]).exists():
-                continue
-            if not wellId == row[2]:
-                wellId = Welldescription.objects.get(wellid=row[2])
-            productions = Productions(productionid=row[0], productiondate=row[1], wellid=wellId,
-                                      crudeoil=row[6], naturalgas=row[7], condensate=row[9], cbm=row[8])
-            productions.save()
-        return JsonResponse({"status": 200, "message": "Successfully data uploaded"}, safe=False)
-    else:
-        return JsonResponse({"status": 500, "message": "sorry there was some error"}, safe=False)
-
-
-@csrf_exempt
-def getOilProductionData(request):
-    if request.method != "GET":
-        return JsonResponse({"status": 405, "title": "Method not allowed", "message": f"{request.method} method not allowed."}, safe=False)
-    startDate, endDate = (None,)*2
-    startDate = request.GET.get("startDate")
-    endDate = request.GET.get("endDate")
-    start = datetime.datetime.strptime(startDate, '%Y-%m-%d')
-    end = datetime.datetime.strptime(endDate, '%Y-%m-%d')
-    if not (start and end):
-        return JsonResponse({"status": 403, "title": "FORBIDDEN", "message": f"{startDate} Formate of date is not allowed."}, safe=False)
-    dataQueryset = Productions.objects.filter(
-        ~Q(productiondate__range=[start, end]))
-    serializedData = serializers.serialize('json', dataQueryset, fields=(
-        'productionid', 'productiondate', 'wellid', 'crudeoil'))
-    return JsonResponse({"status": 200, "title": "OK", "Data": serializedData}, safe=False)
-
-
-@csrf_exempt
-def getGasProductionData(request):
-    if request.method != 'GET':
-        return JsonResponse({"status": 405, "title": "Method not allowed", "message": f"{request.method} method not allowed."}, safe=False)
-    startDate, endDate = (None,)*2
-    startDate = request.GET.get('startDate')
-    endDate = request.GET.get('endDate')
-    start = datetime.datetime.strptime(startDate, '%Y-%m-%d')
-    end = datetime.datetime.strptime(endDate, '%Y-%m-%d')
-    if not (start and end):
-        return JsonResponse({"status": 403, "title": "FORBIDDEN", "message": f"{startDate} Formate of date is not allowed."}, safe=False)
-    dataQueryset = Productions.objects.filter(
-        ~Q(productiondate__range=[start, end]))
-    serializedData = serializers.serialize('json', dataQueryset, fields=(
-        'productionid', 'productiondate', 'wellid', 'naturalgas'))
-    return JsonResponse({"status": 200, "title": "OK", "Data": serializedData}, safe=False)
-
-
-@csrf_exempt
-def getCondensateProductionData(request):
-    if request.method != 'GET':
-        return JsonResponse({"status": 405, "title": "Method not allowed", "message": f"{request.method} method not allowed."}, safe=False)
-    startDate, endDate = (None,)*2
-    startDate = request.GET.get('startDate')
-    endDate = request.GET.get('endDate')
-    start = datetime.datetime.strptime(startDate, '%Y-%m-%d')
-    end = datetime.datetime.strptime(endDate, '%Y-%m-%d')
-    if not (start and end):
-        return JsonResponse({"status": 403, "title": "FORBIDDEN", "message": f"{startDate} Formate of date is not allowed."}, safe=False)
-    dataQueryset = Productions.objects.filter(
-        ~Q(productiondate__range=[start, end]))
-    serializedData = serializers.serialize('json', dataQueryset, fields=(
-        'productionid', 'productiondate', 'wellid', 'condensate'))
-    return JsonResponse({"status": 200, "title": "OK", "Data": serializedData}, safe=False)
-
-
-@csrf_exempt
-def getCBMProductionData(request):
-    if request.method != 'GET':
-        return JsonResponse({"status": 405, "title": "Method not allowed", "message": f"{request.method} method not allowed."}, safe=False)
-    startDate, endDate = (None,)*2
-    startDate = request.GET.get('startDate')
-    endDate = request.GET.get('endDate')
-    start = datetime.datetime.strptime(startDate, '%Y-%m-%d')
-    end = datetime.datetime.strptime(endDate, '%Y-%m-%d')
-    if not (start and end):
-        return JsonResponse({"status": 403, "title": "FORBIDDEN", "message": f"{startDate} Formate of date is not allowed."}, safe=False)
-    dataQueryset = Productions.objects.filter(
-        ~Q(productiondate__range=[start, end]))
-    serializedData = serializers.serialize('json', dataQueryset, fields=(
-        'productionid', 'productiondate', 'wellid', 'cbm'))
-    return JsonResponse({"status": 200, "title": "OK", "Data": serializedData}, safe=False)

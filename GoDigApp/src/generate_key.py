@@ -19,8 +19,9 @@ class GenerateKey:
     def returnValue(email):
         return str(email) +  "Some Random Secret Key"
     @staticmethod
-    def send(email, recipients):
-        key = base64.b32encode(GenerateKey.returnValue(email).encode())  # Key is generated
+    def send(email,recipients,key):
+        if key is None:
+            key = base64.b32encode(GenerateKey.returnValue(email).encode())  # Key is generated
         print('\n', key, '\n')
         subject = "Enquest Login Id"
         message = f"""
